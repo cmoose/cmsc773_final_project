@@ -41,7 +41,8 @@ def do_mypersonality():
     fh_remain_w = open(my_dep_remaining_filelist, 'wb')
     fh = open(my_dep_filelist)
     for filepath in fh:
-      if not os.path.exists(filepath.strip() + '.xml'):
+      processed_filepath = my_dep_outputdir + filepath.strip().split('/')[-1]
+      if not os.path.exists(processed_filepath + '.xml'):
         fh_remain_w.write(filepath)
     fh_remain_w.close()
     run_data_through_corenlp(my_dep_remaining_filelist, my_dep_outputdir)
