@@ -41,6 +41,6 @@ def prepare_mypersonality_data():
   for filename in files:
     fhw.write(inputdir + filename + '\n')
 
-#prepare_mypersonality_data()
+prepare_mypersonality_data()
 prepare_reddit_data()
 
