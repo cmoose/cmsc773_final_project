@@ -50,4 +50,8 @@ def do_mypersonality():
     print "Run python preprocess_data.py first before this"
     exit(1)
 
+print "Processing reddit data..."
+do_reddit()
+print "-------------------------"
+print "Processing mypersonality_depression data..."
 do_mypersonality()
