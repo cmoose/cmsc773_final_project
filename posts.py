@@ -13,38 +13,58 @@ class File():
     d = xmltodict.parse(open(self.filename))
     #TODO: add coreferences
     sents_d = d['root']['document']['sentences']['sentence']
-    for i in range(0, len(sents_d)):
-      self.sentences.append(Sentence(sents_d[i]))
+    try:
+      #Grrr xmltodict...
+      #Try to access this as an array, if it fails, there is only one sentence
+      sents_d[0] 
+      for i in range(0, len(sents_d)):
+        self.sentences.append(Sentence(sents_d[i]))
+    except KeyError:
+      #If we got here, it means there is only one sentence in this file
+      self.sentences.append(Sentence(sents_d))
     print "Loaded all sentences in file: %s..." % (self.filename)
 
 class Sentence():
   #Initialize the object with data
   def __init__(self, sent_dict = {}):
+    #Hack: if there is only a root dependency item (the sentence is literally a <period>)
+    # or some ridiculousness like that, then encapsulate it in an array so it functions
+    # like the rest of the xmltodict dictionary structures
+    tokens_d = sent_dict['tokens']['token']
+    if not isinstance(tokens_d, list):
+      tokens_d = [tokens_d]
+    deps_d = sent_dict['dependencies'][0]['dep']
+    if not isinstance(deps_d, list):
+      deps_d = [deps_d]
+    
     self.tokens = []
-    self.deptree = self.build_deptree(sent_dict['dependencies'][0]['dep'])
-    self.raw_deptree = sent_dict['dependencies'][0]['dep']
+    self.deptree = self.build_deptree(deps_d)
+    self.raw_deptree = deps_d
     self.verbs = {}
     self.adjs = {}
     
-    for i in range(0,len(sent_dict['tokens']['token'])):
+    for i in range(0,len(tokens_d)):
       token = {}
-      token['POS'] = sent_dict['tokens']['token'][i]['POS']
-      token['word'] = sent_dict['tokens']['token'][i]['word']
-      token['@id'] = sent_dict['tokens']['token'][i]['@id']
+      token['POS'] = tokens_d[i]['POS']
+      token['word'] = tokens_d[i]['word']
+      token['@id'] = tokens_d[i]['@id']
       #TODO: add NER
       self.tokens.append(token)
       if token['POS'].startswith('VB'):
         #Store @id as key, verb as value
-        self.verbs[int(token['@id'])] = sent_dict['tokens']['token'][i]['lemma']
+        self.verbs[int(token['@id'])] = tokens_d[i]['lemma']
       if token['POS'].startswith('JJ'):
-        self.adjs[int(token['@id'])] = sent_dict['tokens']['token'][i]['lemma']
+        self.adjs[int(token['@id'])] = tokens_d[i]['lemma']
   
   def build_deptree(self, sent_dep):
     deptree = {}
+    
+    #This just initializes the deptree dictionary so we don't have keyerrors
     for i in range(1,len(sent_dep)+1):
       deptree[i] = {}
       deptree[i]['governors'] = []
       deptree[i]['dependents'] = []
+    
     for item in sent_dep:
       _id = int(item['dependent']['@idx'])
       gov_id = int(item['governor']['@idx'])
@@ -54,6 +74,7 @@ class Sentence():
       if _type != 'root':
         deptree[gov_id]['dependents'].append((_id,_type))
     return deptree
+  
   def get_root(self):
     """Returns root word"""
     return {self.raw_deptree[0]['dependent']['@idx']: self.raw_deptree[0]['dependent']['#text']}
