@@ -32,15 +32,17 @@ for later processing by Stanford's NLP toolkit.
       fhw_rejects.write(line)
 
 def prepare_mypersonality_data():
-  outputdir = 'mypersonality/depression/'
-  inputdir = 'project_materials/mypersonality_depression/text/'
-  if not os.path.exists(outputdir):
-    os.makedirs(outputdir)
-  files = [f for f in os.listdir(inputdir)]
-  fhw = open('mypersonality/depression_filelist.txt', 'wb')
-  for filename in files:
-    fhw.write(inputdir + filename + '\n')
+  for datatype in ['depression', 'neuroticism']:
+    outputdir = 'mypersonality/%s/' % (datatype)
+    inputdir = 'project_materials/mypersonality_%s/text/' % (datatype)
+    if not os.path.exists(outputdir):
+      os.makedirs(outputdir)
+    files = [f for f in os.listdir(inputdir)]
+    fhw = open('mypersonality/%s_filelist.txt' % (datatype), 'wb')
+    for filename in files:
+      fhw.write(inputdir + filename + '\n')
 
-prepare_mypersonality_data()
-prepare_reddit_data()
+if __name__ == '__main__':
+  prepare_mypersonality_data()
+  prepare_reddit_data()
 
