@@ -1,4 +1,6 @@
 #!/usr/bin/python
+import pickle
+import os
 
 cat_id_map = {}
 categories = {}
@@ -30,14 +32,36 @@ def load_liwc(filename):
   s = set()
   for cat in depression_categories:
     s = s.union(categories[cat_id_map[cat]])
-  global depression_words
   depression_words = list(s)
   print "Loaded emotion.categories and emotion.cat_id_map structures..."
+  return depression_words
 def load():
   """Loads the liwc file plus the manually created depression verbs file"""
-  load_liwc('project_materials/liwc/LIWC2007.dic')
-  fhw = open('depression_verbs.txt')
   global depression_verbs
-  for line in fhw:
-    depression_verbs.append(line.strip())
-
+  global depression_words
+  #Check cache first
+  if os.path.exists('cache/depression_verbs.pkl') and os.path.exists('cache/depression_words.pkl'):
+    depression_verbs = pickle.load(open('cache/depression_verbs.pkl'))
+    depression_words = pickle.load(open('cache/depression_words.pkl'))
+  else:
+    #Load depression words
+    depression_words = load_liwc('project_materials/liwc/LIWC2007.dic')
+    
+    #Load depression verbs
+    fh = open('depression_verbs.txt')
+    for line in fh:
+      depression_verbs.append(line.strip())
+    fh.close()
+    
+    if not os.path.exists('cache'):
+      os.makedirs('cache')
+    
+    #Cache depression words
+    fhw = open('cache/depression_words.pkl', 'wb')
+    pickle.dump(depression_words, fhw)
+    fhw.close()
+    
+    #Cache depression verbs
+    fhw = open('cache/depression_verbs.pkl', 'wb')
+    pickle.dump(depression_verbs, fhw)
+    fhw.close()

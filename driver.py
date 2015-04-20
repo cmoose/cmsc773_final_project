@@ -5,13 +5,20 @@
 
 import os
 import posts
+import corpus
 
-def main():
-  xmldir = 'reddit/depressed/'
+def test():
+  xmldir = 'mypersonality/depression/'
   files = [f for f in os.listdir(xmldir) if f.endswith('xml')] 
   for fn in files:
-    print xmldir + fn
+    print fn
     f = posts.File(xmldir + fn)
     f.load()
 
-main()
+def load_all_corpora():
+  #for corpusdir in ['reddit/depressed/', 'mypersonality/depression/', 'mypersonality/neuroticism/']:
+  for corpusdir in ['mypersonality/neuroticism/']:
+    reddit_corpus = corpus.Corpus(corpusdir)
+    reddit_corpus.load()
+#test()
+load_all_corpora()

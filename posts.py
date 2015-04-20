@@ -10,6 +10,8 @@ class File():
     self.filename = filename
     self.sentences = []
   def load(self):
+    if self.sentences:
+      return
     d = xmltodict.parse(open(self.filename))
     #TODO: add coreferences
     sents_d = d['root']['document']['sentences']['sentence']
@@ -23,6 +25,30 @@ class File():
       #If we got here, it means there is only one sentence in this file
       self.sentences.append(Sentence(sents_d))
     print "Loaded all sentences in file: %s..." % (self.filename)
+  
+  #File aggregation functions
+  def count_verbs(self):
+    self.load()
+    total_count = Counter()
+    for s in self.sentences:
+      v = s.verbs.values()
+      for verb in v:
+        total_count[verb] += 1
+    return total_count
+  def count_verbs_byfilter(self, verbset):
+    self.load()
+    total_count = Counter()
+    for s in self.sentences:
+      count = s.count_verbs_byfilter(verbset)
+      total_count += count
+    return total_count
+  def count_nsubj_dependents(self):
+    self.load()
+    total_count = Counter()
+    for s in self.sentences:
+      count = s.count_nsubj_dependents()
+      total_count += count
+    return total_count
 
 class Sentence():
   #Initialize the object with data
@@ -88,7 +114,7 @@ class Sentence():
     return self.deptree[w_id]['governors']
   
   #Adjective related functions
-  def find_adjs(self, wordset):
+  def find_adjs_byfilter(self, wordset):
     """Finds matching words from text, returns @id positions in sentence
 Note: Due to the size of the wordset and the fact they're regexes, this will be slow"""
     ids = []
@@ -100,7 +126,7 @@ Note: Due to the size of the wordset and the fact they're regexes, this will be 
     return ids
   
   #Verb related functions
-  def find_verb(self, verbset):
+  def find_verbs_byfilter(self, verbset):
     """Finds existence of verb(s) from set of verbs, returns @id positions in sentence"""
     ids = []
     for k,v in self.verbs.items():
@@ -135,8 +161,8 @@ Note: Due to the size of the wordset and the fact they're regexes, this will be 
     return nsubj
   
   #Counting functions
-  def count_verbs(self, verbset):
-    """Counts verbs based on a verbset, returns a Counter() object (see util.py)"""
+  def count_verbs_byfilter(self, verbset):
+    """Counts verbs based on a verbset filter, returns a Counter() object (see util.py)"""
     counts = Counter()
     for v in self.verbs.values():
       for regex in verbset:
@@ -148,6 +174,7 @@ Note: Due to the size of the wordset and the fact they're regexes, this will be 
     counts = Counter()
     for item in self.raw_deptree:
       if item['@type'] == 'nsubj':
+        print item
         counts[item['dependent']['#text']] += 1
     return counts
   
