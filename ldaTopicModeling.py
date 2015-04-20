@@ -72,3 +72,19 @@ for i, topic_dist in enumerate(topic_word):
     print('Topic {}: {}'.format(i, ' '.join(topic_words)))
 
 
+print 'Topic Modeling for Reddit Depressed...'
+
+fnames = ['NGrams/reddit_depressed_unigrams_feats.txt']
+
+feats = loadFeatures(fnames)
+vocab = loadVocab('NGrams/reddit_depressed_unigrams_vocab.txt')
+
+model = lda.LDA(n_topics=5, n_iter=100, random_state=1)
+X = np.array(feats)
+model.fit(X)
+topic_word = model.topic_word_  # model.components_ also works
+n_top_words = 8
+for i, topic_dist in enumerate(topic_word):
+    topic_words = np.array(vocab)[np.argsort(topic_dist)][:-n_top_words:-1]
+    print('Topic {}: {}'.format(i, ' '.join(topic_words)))
+
