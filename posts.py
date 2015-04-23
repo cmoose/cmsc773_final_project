@@ -68,6 +68,8 @@ class Sentence():
     self.raw_deptree = deps_d
     self.verbs = {}
     self.adjs = {}
+    self.nouns = {}
+    self.advs = {}
     
     for i in range(0,len(tokens_d)):
       token = {}
@@ -79,8 +81,12 @@ class Sentence():
       if token['POS'].startswith('VB'):
         #Store @id as key, verb as value
         self.verbs[int(token['@id'])] = tokens_d[i]['lemma']
-      if token['POS'].startswith('JJ'):
+      elif token['POS'].startswith('JJ'):
         self.adjs[int(token['@id'])] = tokens_d[i]['lemma']
+      elif token['POS'].startswith('NN'):
+        self.nouns[int(token['@id'])] = tokens_d[i]['lemma']
+      elif token['POS'].startswith('RB'):
+        self.advs[int(token['@id'])] = tokens_d[i]['lemma']
   
   def build_deptree(self, sent_dep):
     deptree = {}
@@ -183,6 +189,3 @@ Note: Due to the size of the wordset and the fact they're regexes, this will be 
     """Useful to print out the raw sentence text"""
     raw = " ".join([token['word'] for token in self.tokens])
     return raw
-  def some_deptree_function(self):
-    """Write your own..."""
-    pass

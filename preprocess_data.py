@@ -2,6 +2,7 @@
 # This file breaks up the data files into more meaningful chunks for
 # the stanford parser.
 import os
+import shutil
 
 def prepare_reddit_data():
   """Takes the depressed.txt file and breaks each post into a separate file
@@ -31,7 +32,36 @@ for later processing by Stanford's NLP toolkit.
     else:
       fhw_rejects.write(line)
 
+def setup_cache_dir():
+  pass
+
+def remove_duplicate_statuses():
+  inputdir = 'project_materials/mypersonality_depression/text/'
+  outputdir = 'project_materials/mypersonality_depression/text_deduped/'
+  orig_newinputdir = 'project_materials/mypersonality_depression/text_orig/'
+  if os.path.exists(orig_newinputdir):
+    print "Already removed duplicates..."
+    return
+  if not os.path.exists(outputdir):
+    os.makedirs(outputdir)
+  files = [f for f in os.listdir(inputdir)]
+  print "Removing duplicates..."
+  for filename in files:
+    fh = open(inputdir + filename)
+    fhw = open(outputdir + filename, 'wb')
+    firstline = fh.readline()
+    fhw.write(firstline)
+    for line in fh:
+      if line == firstline:
+        break
+      fhw.write(line)
+    fh.close()
+    fhw.close()
+  shutil.move(inputdir, orig_newinputdir) #move original files to text_orig/ subdir
+  shutil.move(outputdir, inputdir) #move deduped files to text/ subdir so process_data.py will work
+
 def prepare_mypersonality_data():
+  remove_duplicate_statuses()
   for datatype in ['depression', 'neuroticism']:
     outputdir = 'mypersonality/%s/' % (datatype)
     inputdir = 'project_materials/mypersonality_%s/text/' % (datatype)
