@@ -31,12 +31,12 @@ def run_data_through_corenlp(filelist, outputdir):
 
 def process_corpus(corpusdir, corpusfilelist):
   pass
-def do_reddit():
-  print "PROCESSING REDDIT DATA..."
-  reddit_filelist = 'reddit/filelist.txt'
-  reddit_outputdir = 'reddit/depressed/'
+def do_reddit(name):
+  print "PROCESSING REDDIT %s DATA..." % (name.upper())
+  reddit_filelist = 'reddit/%s_filelist.txt' % (name)
+  reddit_outputdir = 'reddit/%s/' % (name)
   if os.path.exists(reddit_filelist):
-    reddit_remaining_filelist = 'reddit/remain_filelist.txt'
+    reddit_remaining_filelist = 'reddit/%s_remain_filelist.txt' % (name)
     fh_remain_w = open(reddit_remaining_filelist, 'wb')
     fh = open(reddit_filelist)
     for filepath in fh:
@@ -45,7 +45,7 @@ def do_reddit():
         fh_remain_w.write(filepath)
     fh_remain_w.close()
     run_data_through_corenlp(reddit_remaining_filelist, reddit_outputdir)
-    print "\n  COMPLETED REDDIT DATA...\n\n"
+    print "\n  COMPLETED REDDIT %s DATA...\n\n" % (name)
   else:
     print "Run python preprocess_data.py first before this"
     exit(1)
@@ -71,5 +71,8 @@ def do_mypersonality():
       exit(1)
 
 if __name__ == '__main__':
-  do_reddit()
+  do_reddit('depressed')
+  do_reddit('casualconversation')
+  do_reddit('changemyview')
+  do_reddit('confession')
   do_mypersonality()

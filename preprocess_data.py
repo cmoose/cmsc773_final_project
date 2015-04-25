@@ -3,8 +3,10 @@
 # the stanford parser.
 import os
 import shutil
+import json
+import codecs
 
-def prepare_reddit_data():
+def prepare_reddit_depressed_data():
   """Takes the depressed.txt file and breaks each post into a separate file
 for later processing by Stanford's NLP toolkit.
 @output creates reddit_depressed directory, file per post
@@ -15,8 +17,8 @@ for later processing by Stanford's NLP toolkit.
   outputdir = 'reddit/depressed'
   if not os.path.exists(outputdir):
     os.makedirs(outputdir)
-  fhw_rejects = open('reddit/rejects.txt', 'wb')
-  fhw_filelist = open('reddit/filelist.txt', 'wb')
+  fhw_rejects = open('reddit/depressed_rejects.txt', 'wb')
+  fhw_filelist = open('reddit/depressed_filelist.txt', 'wb')
   for line in fh:
     items = line.split('\t')
     if len(items) == 3:
@@ -32,8 +34,30 @@ for later processing by Stanford's NLP toolkit.
     else:
       fhw_rejects.write(line)
 
-def setup_cache_dir():
-  pass
+def prepare_reddit_control_data(name):
+  setup_cache_dir('reddit/%s' % (name))
+  inputdir = 'reddit/reddit-control/'
+  outputdir = 'reddit/%s/' % (name)
+  print "preparing reddit %s posts..." % (name)
+  if not os.path.exists(outputdir):
+    os.makedirs(outputdir)
+  fhw_filelist = open('reddit/%s_filelist.txt' % (name), 'wb')
+  fh = open(inputdir + 'reddit-%s-data.out' % (name))
+  i = 1 
+  for line in fh:
+    if line.strip():
+      d = json.loads(line)
+      _id = d['id']
+      text = d['selftext']
+      fhw = codecs.open(outputdir + _id + '_%d.txt' % (i), 'wb', 'utf-8')
+      fhw.write(text)
+      fhw_filelist.write(outputdir + _id + '_%d.txt\n' % (i))
+      fhw.close()
+      i+=1
+def setup_cache_dir(name):
+  if not os.path.exists('cache/%s' % (name)):
+    print "\tCreating cache/%s dir" % (name)
+    os.makedirs('cache/%s' % (name))
 
 def remove_duplicate_statuses():
   inputdir = 'project_materials/mypersonality_depression/text/'
@@ -64,6 +88,7 @@ def prepare_mypersonality_data():
   remove_duplicate_statuses()
   for datatype in ['depression', 'neuroticism']:
     outputdir = 'mypersonality/%s/' % (datatype)
+    setup_cache_dir(outputdir)
     inputdir = 'project_materials/mypersonality_%s/text/' % (datatype)
     if not os.path.exists(outputdir):
       os.makedirs(outputdir)
@@ -74,5 +99,8 @@ def prepare_mypersonality_data():
 
 if __name__ == '__main__':
   prepare_mypersonality_data()
-  prepare_reddit_data()
-
+  prepare_reddit_depressed_data()
+  prepare_reddit_control_data('casualconversation')
+  prepare_reddit_control_data('confession')
+  prepare_reddit_control_data('depressed')
+  prepare_reddit_control_data('changemyview')

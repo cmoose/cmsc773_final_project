@@ -67,6 +67,7 @@ class Sentence():
     self.deptree = self.build_deptree(deps_d)
     self.raw_deptree = deps_d
     self.verbs = {}
+    self.verbs_count = Counter()
     self.adjs = {}
     self.nouns = {}
     self.advs = {}
@@ -76,16 +77,18 @@ class Sentence():
       token['POS'] = tokens_d[i]['POS']
       token['word'] = tokens_d[i]['word']
       token['@id'] = tokens_d[i]['@id']
+      token['lemma'] = tokens_d[i]['lemma']
       #TODO: add NER
       self.tokens.append(token)
-      if token['POS'].startswith('VB'):
+      if token['POS'].startswith('VB') or token['POS'] == 'MD':
         #Store @id as key, verb as value
         self.verbs[int(token['@id'])] = tokens_d[i]['lemma']
+        self.verbs_count[token['POS']] += 1
       elif token['POS'].startswith('JJ'):
         self.adjs[int(token['@id'])] = tokens_d[i]['lemma']
       elif token['POS'].startswith('NN'):
         self.nouns[int(token['@id'])] = tokens_d[i]['lemma']
-      elif token['POS'].startswith('RB'):
+      elif token['POS'].startswith('RB') or token['POS'] == 'WRB':
         self.advs[int(token['@id'])] = tokens_d[i]['lemma']
   
   def build_deptree(self, sent_dep):
@@ -119,28 +122,13 @@ class Sentence():
     """Gets all word's immediate governors (parents)"""
     return self.deptree[w_id]['governors']
   
-  #Adjective related functions
-  def find_adjs_byfilter(self, wordset):
-    """Finds matching words from text, returns @id positions in sentence
-Note: Due to the size of the wordset and the fact they're regexes, this will be slow"""
-    ids = []
-    for k,v in self.adjs.items():
-      for regex in wordset:
-        if re.search(regex, v):
-          print k, v, regex
-          ids.append(k)
-    return ids
-  
-  #Verb related functions
-  def find_verbs_byfilter(self, verbset):
-    """Finds existence of verb(s) from set of verbs, returns @id positions in sentence"""
-    ids = []
-    for k,v in self.verbs.items():
-      for regex in verbset:
-        if re.search(regex, v):
-          print k, v, regex
-          ids.append(k)
-    return ids
+  def get_verb_object(self, w_id):
+    nobj = {}
+    for d in self.get_dependents(w_id):
+      if d[1] == 'nobj':
+        nobj = {d[0]: self.tokens[d[0]-1]['word']}
+        break
+    return nobj
   def get_verb_subject(self, w_id):
     """Gets the n_subject of the verb, needs @id position in sentence"""
     nsubj = {}
