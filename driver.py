@@ -128,12 +128,6 @@ def process_chunk(chunk, dirprefix):
   pickle.dump(chunk_data, fhw)
   fhw.close()
 
-def parse_chunk_args(args):
-  chunk = []
-  for f in args:
-    chunk.append(f)
-  return chunk
-
 def parallelize(chunks, dirprefix):
   procs = []
   for chunk in chunks:
@@ -145,28 +139,57 @@ def parallelize(chunks, dirprefix):
   exit_codes = [p.wait() for p in procs]
   return exit_codes
 
+def parse_chunk_args(args):
+  chunk = []
+  for f in args:
+    chunk.append(f)
+  return chunk
+
+def parse_args(args):
+  is_parallel = False #Denotes when command-line option is set, not used in subprocesses
+  dirs = []
+  chunk = [] #Used only when calling ourselves
+  if args.count('--parallel') > 0:
+    is_parallel = True
+    args.remove('--parallel')
+  arg_count = len(args)
+  if arg_count == 1:
+    #Process all corpora
+    dirs = ['mypersonality/depression', 
+            'mypersonality/neuroticism', 
+            'reddit/depressed', 
+            'reddit/casualconveration', 
+            'reddit/confession', 
+            'reddit/changemyview']
+  elif arg_count == 2 and os.path.isdir(args[1]):
+    #Process a single corpus
+    dirs.append(args[1])
+  elif arg_count > 2:
+    #We're calling ourselves to create subprocesses
+    chunk = parse_chunk_args(args[2:])
+    dirs = [args[1]]
+  return {'parallel_flag': is_parallel, 'corpora': dirs, 'found_chunk': chunk}
+
 if __name__ == '__main__':
-  if len(sys.argv) == 1:
-    dirprefix = 'mypersonality/neuroticism'
-    chunks = create_chunks(dirprefix)
-    while chunks:
-      #Only create 8 separate processes
-      num_subprocs = min(8,len(chunks))
-      exit_codes = parallelize(chunks[:num_subprocs], dirprefix)
-      print "Finished %d chunks, processing more..." % (num_subprocs)
-      chunks = chunks[num_subprocs:]
-    #No args, process all
-    #dirs = ['mypersonality/depression', 'reddit/depressed', 'reddit/casualconveration', 'reddit/confession', 'reddit/changemyview']
-    #process('mypersonality/depression')
-    #process('reddit/depressed')
-    #process('reddit/casualconversation')
-    #process('reddit/confession')
-    #process('reddit/changemyview')
-  elif len(sys.argv) == 2:
-    #Process a directory, non-parallel
-    process(sys.argv[1])
-  elif len(sys.argv) > 2:
+  options = parse_args(sys.argv)
+  if options['found_chunk']: #args used in subprocess, we're calling ourselves at this point
+    #Process a single chunk in subprocess/parallel mode
     emotion.load()
-    chunk = parse_chunk_args(sys.argv[2:])
-    dirprefix = sys.argv[1]
-    process_chunk(chunk, dirprefix)
+    corpusdir = options['corpora'][0]
+    process_chunk(options['found_chunk'], corpusdir)
+  else:
+    if options['parallel_flag']:
+      for corpusdir in options['corpora']:
+        #parallelize each corpus
+        emotion.load()
+        chunks = create_chunks(corpusdir) 
+        while chunks:
+          #Only create 8 separate processes
+          num_subprocs = min(8,len(chunks))
+          exit_codes = parallelize(chunks[:num_subprocs], corpusdir)
+          print "Finished %d chunks, processing more..." % (num_subprocs)
+          chunks = chunks[num_subprocs:]
+    else:
+      for corpusdir in options['corpora']:
+        #Process a directory, non-parallel
+        process(corpusdir)

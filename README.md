@@ -18,6 +18,23 @@ for s in f.sentences:
   print s.verbs
 ```
 
+##Doing all processing
+- This method processes:
+  - Gets lists of all verbs and negative verbs plus counts for each
+  - Gets list of negative words plus counts for each (also captures POS via '_')
+  - Counts number of past and future (modal) tense verbs
+- To run:
+  - python driver.py --parallel <corpus directory containing xml files>
+  - --parallel param is optional
+```bash
+$ python driver.py --parallel <corpus directory containing xml files>
+$ python driver.py #Process all corpora iteratively (will take a long time)
+$ python driver.py --parallel #Process all corpora in parallel
+$ python driver.py reddit/depressed #Process the reddit/depressed corpora
+$ python driver.py --parallel reddit/depressed #Process the reddit/depressed corpus in parallel
+```
+- The parallel option will create 8 subprocesses for concurrent processing. This will saturate all cpus/cores on your laptop.
+
 ##Class structure in posts.py
 - File
   - contains n sentences
