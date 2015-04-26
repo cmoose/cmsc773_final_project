@@ -135,19 +135,26 @@ def parse_chunk_args(args):
   return chunk
 
 def parallelize(chunks, dirprefix):
+  procs = []
   for chunk in chunks:
     #Create a new process for each directory
     print "CREATING NEW PROCESS TO PROCESS %s" % ("\n\t".join(chunk))
-    pid = Popen(['python', 'driver.py', dirprefix] + chunk).pid
-    print "NEW PROCESS RUNS AS PID %d" % (pid)
+    p = Popen(['python', 'driver.py', dirprefix] + chunk)
+    procs.append(p)
+    print "NEW PROCESS RUNS AS PID %d" % (p.pid)
+  exit_codes = [p.wait() for p in procs]
+  return exit_codes
 
 if __name__ == '__main__':
   if len(sys.argv) == 1:
     dirprefix = 'mypersonality/neuroticism'
     chunks = create_chunks(dirprefix)
-    #Only create 8 separate processes
-    parallelize(chunks[:8], dirprefix)
-    
+    while chunks:
+      #Only create 8 separate processes
+      num_subprocs = min(8,len(chunks))
+      exit_codes = parallelize(chunks[:num_subprocs], dirprefix)
+      print "Finished %d chunks, processing more..." % (num_subprocs)
+      chunks = chunks[num_subprocs:]
     #No args, process all
     #dirs = ['mypersonality/depression', 'reddit/depressed', 'reddit/casualconveration', 'reddit/confession', 'reddit/changemyview']
     #process('mypersonality/depression')
