@@ -71,9 +71,13 @@ def findNGrams(stopwords, data, n):
     return nGramList, nGramCnts
 
 def freqNGrams(nGramCnts, nGramList):
-    sortedCnts, sortedNGrams = (list(t) for t in zip(*sorted(zip(nGramCnts, nGramList))))
-    sortedCnts.reverse()
-    sortedNGrams.reverse()
+    if len(nGramCnts) > 0:
+        sortedCnts, sortedNGrams = (list(t) for t in zip(*sorted(zip(nGramCnts, nGramList))))
+        sortedCnts.reverse()
+        sortedNGrams.reverse()
+    else:
+        sortedNGrams = []
+        sortedCnts = []
 
     return sortedNGrams, sortedCnts
 
@@ -125,7 +129,8 @@ def saveRedditNGrams(n, dataFile, outputFile):
     data = loadData(dataFile)
     nGramList, nGramCnts = findNGrams(stopwords, data, n)
     sortedNGrams, sortedCnts = freqNGrams(nGramCnts, nGramList)
-    saveNGrams(sortedNGrams, sortedCnts, outputFile)
+    if sortedNGrams != []:
+        saveNGrams(sortedNGrams, sortedCnts, outputFile)
 
 def saveMyPersonalityNGrams(n, dataFiles, outputFile):
     stopwords = loadStopwords()
@@ -225,11 +230,21 @@ if not os.path.exists('NGrams'):
     print 'Creating directory NGrams...'
     os.makedirs('NGrams')
 
-print 'Computing Reddit NGrams...'
-saveRedditNGrams(1, 'project_materials/reddit/depressed.txt', 'NGrams/reddit_depressed_unigrams.txt')
-saveRedditNGrams(2, 'project_materials/reddit/depressed.txt', 'NGrams/reddit_depressed_bigrams.txt')
-saveRedditNGrams(3, 'project_materials/reddit/depressed.txt', 'NGrams/reddit_depressed_trigrams.txt')
+if not os.path.exists('reddit/NGrams'):
+    print 'Creating directory reddit/NGrams...'
+    os.makedirs('reddit/NGrams')
 
+print 'Computing Reddit NGrams...'
+f = open('reddit/filelist.txt', 'r')
+for line in f:
+    line = line.strip()
+    print 'Saving NGrams for', line, '...'
+    saveRedditNGrams(1, line, 'reddit/NGrams/' + line[16:-4] + '_unigrams.txt')
+    saveRedditNGrams(2, line, 'reddit/NGrams/' + line[16:-4] + '_bigrams.txt')
+    saveRedditNGrams(3, line, 'reddit/NGrams/' + line[16:-4] + '_trigrams.txt')
+f.close()
+
+'''
 onlyfiles, scores = separateMyPersonalityData('project_materials/mypersonality_depression/', '939_userScores.csv')
 
 print 'Computing MyPersonality Depression NGrams...'
@@ -250,4 +265,5 @@ combineMyPersonalityData([44, 48])
 
 div = compareDistrs('NGrams/mypersonality_unigrams_10-15.txt', 'NGrams/mypersonality_unigrams_44-48.txt', 2)
 print div
+'''
 

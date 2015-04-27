@@ -1,6 +1,7 @@
 import numpy as np
 import lda
 import os
+import string
 
 def loadVocab(fname):
     vocab = []
@@ -21,7 +22,7 @@ def loadFeatures(fnames):
             feat.append(int(line))
         feats.append(feat)
     return feats
-
+'''
 if not os.path.exists('NGrams'):
     print 'Run python findNGrams.py before doing this...'
     sys.exit()
@@ -71,10 +72,17 @@ for i, topic_dist in enumerate(topic_word):
     topic_words = np.array(vocab)[np.argsort(topic_dist)][:-n_top_words:-1]
     print('Topic {}: {}'.format(i, ' '.join(topic_words)))
 
-
+'''
 print 'Topic Modeling for Reddit Depressed...'
+fnames = []
+f = open('reddit/filelist.txt', 'r')
+for line in f:
+    line = line.strip()
+    fname = string.replace(line, 'depressed', 'NGrams')
+    fname = fname[:-4] + '_unigrams_feats.txt'
+    fnames.append(fname)
 
-fnames = ['NGrams/reddit_depressed_unigrams_feats.txt']
+#fnames = ['NGrams/reddit_depressed_unigrams_feats.txt']
 
 feats = loadFeatures(fnames)
 vocab = loadVocab('NGrams/reddit_depressed_unigrams_vocab.txt')

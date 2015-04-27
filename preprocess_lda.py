@@ -1,6 +1,7 @@
 #process data for topic modeling
 import sys
 import os
+import string
 
 def loadNGramFile(filename):
     ngrams = []
@@ -48,7 +49,7 @@ if not os.path.exists('NGrams'):
     print 'Run python findNGrams.py before doing this...'
     sys.exit()
 
-
+'''
 print 'Computing vocab for CESD<16...'
 fnames = []
 for s in range(10, 16):
@@ -80,13 +81,21 @@ for f in fnames:
     feats = (computeFeature(f, vocab))
     outname = f[:-4] + '_feats.txt'
     writeFeature(feats, outname)
-
+'''
 
 print 'Computing vocab for reddit depressed...'
-fnames = ['NGrams/reddit_depressed_unigrams.txt']
+#fnames = ['NGrams/reddit_depressed_unigrams.txt']
+
+fnames = []
+f = open('reddit/filelist.txt', 'r')
+for line in f:
+    line = line.strip()
+    fname = string.replace(line, 'depressed', 'NGrams')
+    fname = fname[:-4] + '_unigrams.txt'
+    fnames.append(fname)
 
 vocab = computeVocab(fnames)
-writeVocab(vocab, 'NGrams/reddit_depressed_unigrams_vocab.txt')
+writeVocab(vocab, 'reddit/NGrams/reddit_depressed_unigrams_vocab.txt')
 
 print 'Writing features for reddit depressed...'
 for f in fnames:
