@@ -159,7 +159,7 @@ def separateMyPersonalityData(folder, scoreFile):
     return origFNames, scores
 
 def combineMyPersonalityData(scoreRange):
-    fBase = 'NGrams/mypersonality_'
+    fBase = 'mypersonality/NGrams/mypersonality_depressed_'
 
     for gramType in ['unigrams', 'bigrams', 'trigrams']:
         print 'Computing', gramType, 'for score range', scoreRange
@@ -189,7 +189,9 @@ def combineMyPersonalityData(scoreRange):
                         cnts.append(int(line[1]))
                 f.close()
 
-        fout = open(fBase + gramType + '_' + str(scoreRange[0]) + '-' + str(scoreRange[1]) + '.txt', 'w')
+        fname = fBase + gramType + '_' + str(scoreRange[0]) + '-' + str(scoreRange[1]) + '.txt'
+        #print fname
+        fout = open(fname, 'w')
         sortedCnts, sortedGrams = (list(t) for t in zip(*sorted(zip(cnts, ngrams))))
         sortedCnts.reverse() 
         sortedGrams.reverse()
@@ -225,45 +227,92 @@ def compareDistrs(gramFile1, gramFile2, removeVal):
     res = (pqDiv + qpDiv)/2.0
     return res
 
+def runNGrams(flag, gramType):
+    if gramType == 'unigrams':
+        val = 1
+    elif gramType == 'bigrams':
+        val = 2
+    elif gramType == 'trigrams':
+        val = 3
+    else:
+        print 'Bad gram type...'
+        sys.exit()
 
-if not os.path.exists('NGrams'):
-    print 'Creating directory NGrams...'
-    os.makedirs('NGrams')
+    if flag == 'mypersonality_depressed':
+        if not os.path.exists('mypersonality/NGrams'):
+            print 'Creating directory mypersonality/NGrams...'
+            os.makedirs('mypersonality/NGrams')
 
-if not os.path.exists('reddit/NGrams'):
-    print 'Creating directory reddit/NGrams...'
-    os.makedirs('reddit/NGrams')
+        onlyfiles, scores = separateMyPersonalityData('project_materials/mypersonality_depression/', '939_userScores.csv')
 
-print 'Computing Reddit NGrams...'
-f = open('reddit/filelist.txt', 'r')
-for line in f:
-    line = line.strip()
-    print 'Saving NGrams for', line, '...'
-    saveRedditNGrams(1, line, 'reddit/NGrams/' + line[16:-4] + '_unigrams.txt')
-    saveRedditNGrams(2, line, 'reddit/NGrams/' + line[16:-4] + '_bigrams.txt')
-    saveRedditNGrams(3, line, 'reddit/NGrams/' + line[16:-4] + '_trigrams.txt')
-f.close()
+        print 'Computing MyPersonality Depression NGrams...'
+        for s in range(1, 61):
+            dataFiles = []
+            print 'SCORE:', s
+            indices = [i for i, x in enumerate(scores) if x == str(s)]
+            for i in indices:
+                dataFiles.append(onlyfiles[i])
+            if dataFiles != []:
+                saveMyPersonalityNGrams(val, dataFiles, 'mypersonality/NGrams/mypersonality_depressed_' + gramType + '_' + str(s) + '.txt')
+                #saveMyPersonalityNGrams(2, dataFiles, 'mypersonality/NGrams/mypersonality_bigrams_' + str(s) + '.txt')
+                #saveMyPersonalityNGrams(3, dataFiles, 'mypersonality/NGrams/mypersonality_trigrams_' + str(s) + '.txt')
+
+
+    elif flag == 'reddit_depressed':
+        if not os.path.exists('reddit/NGrams'):
+            print 'Creating directory reddit/NGrams...'
+            os.makedirs('reddit/NGrams')
+
+        print 'Computing Reddit NGrams...'
+        f = open('reddit/filelist.txt', 'r')
+        for line in f:
+            line = line.strip()
+            print 'Saving NGrams for', line, '...'
+
+
+            saveRedditNGrams(val, line, 'reddit/NGrams/' + line[16:-4] + '_' + gramType + '.txt')
+            #saveRedditNGrams(2, line, 'reddit/NGrams/' + line[16:-4] + '_bigrams.txt')
+            #saveRedditNGrams(3, line, 'reddit/NGrams/' + line[16:-4] + '_trigrams.txt')
+        f.close()
+
+    else:
+        print 'Unrecognized dataset option...'
+        sys.exit()
+
+def printUsage():
+    print '*****USAGE*****'
+    print 'python findNGrams.py <option> <args>'
+    print 'option ngrams: args= <dataset> <gramType>'
+    print 'option combine: args= <min> <max>'
+    print 'option compare: args= <dist1file> <dist2file> <threshval>'
+
+args = sys.argv
+if args[1] == 'ngrams':
+    if len(args) == 4:
+        runNGrams(args[2], args[3])
+    else:
+        printUsage()
+elif args[1] == 'combine':
+    if len(args) == 4:
+        combineMyPersonalityData([int(args[2]), int(args[3])])
+        print 'Done.'
+    else:
+        printUsage()
+elif args[1] == 'compare':
+    if len(args) == 5:
+        div = compareDistrs(args[2], args[3], float(args[4]))
+        print div
+    else:
+        printUsage()
+else:
+    printUsage()
 
 '''
-onlyfiles, scores = separateMyPersonalityData('project_materials/mypersonality_depression/', '939_userScores.csv')
-
-print 'Computing MyPersonality Depression NGrams...'
-for s in range(1, 61):
-    dataFiles = []
-    print 'SCORE:', s
-    indices = [i for i, x in enumerate(scores) if x == str(s)]
-    for i in indices:
-        dataFiles.append(onlyfiles[i])
-    if dataFiles != []:
-        saveMyPersonalityNGrams(1, dataFiles, 'NGrams/mypersonality_unigrams_' + str(s) + '.txt')
-        saveMyPersonalityNGrams(2, dataFiles, 'NGrams/mypersonality_bigrams_' + str(s) + '.txt')
-        saveMyPersonalityNGrams(3, dataFiles, 'NGrams/mypersonality_trigrams_' + str(s) + '.txt')
 
 
 combineMyPersonalityData([10, 15])
 combineMyPersonalityData([44, 48])
 
-div = compareDistrs('NGrams/mypersonality_unigrams_10-15.txt', 'NGrams/mypersonality_unigrams_44-48.txt', 2)
-print div
+
 '''
 

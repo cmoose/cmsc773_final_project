@@ -49,57 +49,71 @@ if not os.path.exists('NGrams'):
     print 'Run python findNGrams.py before doing this...'
     sys.exit()
 
-'''
-print 'Computing vocab for CESD<16...'
-fnames = []
-for s in range(10, 16):
-    fname = 'NGrams/mypersonality_unigrams_' + str(s) + '.txt'
-    if os.path.exists(fname):
-        fnames.append(fname)
+def runPreprocess(flag, gramType):
+    if flag == 'mypersonality_depressed':
+        print 'Computing vocab for CESD<16...'
+        fnames = []
+        for s in range(10, 16):
+            fname = 'NGrams/mypersonality_' + gramType + '_' + str(s) + '.txt'
+            if os.path.exists(fname):
+                fnames.append(fname)
 
-vocab = computeVocab(fnames)
-writeVocab(vocab, 'NGrams/mypersonality_unigrams_vocab_10-15.txt')
+        vocab = computeVocab(fnames)
+        writeVocab(vocab, 'NGrams/mypersonality_' + gramType + '_vocab_10-15.txt')
 
-print 'Writing features for CESD<16...'
-for f in fnames:
-    feats = (computeFeature(f, vocab))
-    outname = f[:-4] + '_feats.txt'
-    writeFeature(feats, outname)
+        print 'Writing features for CESD<16...'
+        for f in fnames:
+            feats = (computeFeature(f, vocab))
+            outname = f[:-4] + '_feats.txt'
+            writeFeature(feats, outname)
 
-print 'Computing vocab for CESD>43...'
-fnames = []
-for s in range(44, 49):
-    fname = 'NGrams/mypersonality_unigrams_' + str(s) + '.txt'
-    if os.path.exists(fname):
-        fnames.append(fname)
+        print 'Computing vocab for CESD>43...'
+        fnames = []
+        for s in range(44, 49):
+            fname = 'NGrams/mypersonality_' + gramType + '_' + str(s) + '.txt'
+            if os.path.exists(fname):
+                fnames.append(fname)
 
-vocab = computeVocab(fnames)
-writeVocab(vocab, 'NGrams/mypersonality_unigrams_vocab_44-48.txt')
+        vocab = computeVocab(fnames)
+        writeVocab(vocab, 'NGrams/mypersonality_' + gramType + '_vocab_44-48.txt')
 
-print 'Writing features for CESD>43...'
-for f in fnames:
-    feats = (computeFeature(f, vocab))
-    outname = f[:-4] + '_feats.txt'
-    writeFeature(feats, outname)
-'''
+        print 'Writing features for CESD>43...'
+        for f in fnames:
+            feats = (computeFeature(f, vocab))
+            outname = f[:-4] + '_feats.txt'
+            writeFeature(feats, outname)
 
-print 'Computing vocab for reddit depressed...'
-#fnames = ['NGrams/reddit_depressed_unigrams.txt']
+    elif flag == 'reddit_depressed':
+        print 'Computing vocab for reddit depressed...'
 
-fnames = []
-f = open('reddit/filelist.txt', 'r')
-for line in f:
-    line = line.strip()
-    fname = string.replace(line, 'depressed', 'NGrams')
-    fname = fname[:-4] + '_unigrams.txt'
-    fnames.append(fname)
+        fnames = []
+        f = open('reddit/filelist.txt', 'r')
+        for line in f:
+            line = line.strip()
+            fname = string.replace(line, 'depressed', 'NGrams')
+            fname = fname[:-4] + '_' + gramType + '.txt'
+            if os.path.exists(fname):
+                fnames.append(fname)
 
-vocab = computeVocab(fnames)
-writeVocab(vocab, 'reddit/NGrams/reddit_depressed_unigrams_vocab.txt')
+        vocab = computeVocab(fnames)
+        writeVocab(vocab, 'reddit/NGrams/reddit_depressed_' + gramType + '_vocab.txt')
 
-print 'Writing features for reddit depressed...'
-for f in fnames:
-    feats = (computeFeature(f, vocab))
-    outname = f[:-4] + '_feats.txt'
-    writeFeature(feats, outname)
+        print 'Writing features for reddit depressed...'
+        for f in fnames:
+            feats = (computeFeature(f, vocab))
+            outname = f[:-4] + '_feats.txt'
+            writeFeature(feats, outname)
+
+    else:
+        print "Dataset not recognized..."
+        sys.exit()
+
+args = sys.argv
+if len(args) == 3:
+    runPreprocess(args[1], args[2])
+else:
+    print '*****USAGE*****'
+    print 'python preprocess_lda.py <dataset> <gramType>'
+    print 'dataset: mypersonality_depressed, reddit_depressed'
+    print 'gramType: unigrams, bigrams, trigrams'
 
