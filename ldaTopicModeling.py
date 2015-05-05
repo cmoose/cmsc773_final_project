@@ -31,7 +31,7 @@ def findTopics(numTopics, numIter, feats):
     topic_word = model.topic_word_  # model.components_ also works
     return topic_word
 
-def writeTopics(fname, topic_word, n_top_words):
+def writeTopics(fname, topic_word, vocab, n_top_words):
     fout = open(fname, 'w')
     for i, topic_dist in enumerate(topic_word):
         topic_words = np.array(vocab)[np.argsort(topic_dist)][:-n_top_words:-1]
@@ -39,78 +39,222 @@ def writeTopics(fname, topic_word, n_top_words):
         #print('Topic {}: {}'.format(i, ' '.join(topic_words)))
 
 
-def runLDA(flag, gramType):
-    if flag == 'mypersonality_depressed':
-        if not os.path.exists('NGrams'):
+def runLDA(dataset, gramType):
+    print 'LDA for ' + dataset + ' ' + gramType + '...'
+    if dataset == 'mypersonality_depressed':
+        if not os.path.exists('mypersonality/NGrams'):
             print 'Run python findNGrams.py before doing this...'
             sys.exit()
 
-        if not os.path.exists('NGrams/mypersonality_' + gramType + '_vocab_10-15.txt'):
+        
+        if not os.path.exists('mypersonality/NGrams/' + dataset + '_' + gramType + '_vocab_0-15.txt'):
             print 'Run python preprocess_lda.py before doing this...'
             sys.exit()
 
-        print 'Topic Modeling for MyPersonality CESD<16...'
+        print 'Topic Modeling for MyPersonality CESD<=15...'
 
+        SCORERANGE = [0,15]
         fnames = []
-        for s in range(10, 16):
-            fname = 'NGrams/mypersonality_' + gramType + '_' + str(s) + '_feats.txt'
-            if os.path.exists(fname):
-                fnames.append(fname)
+        for fname in os.listdir("mypersonality/NGrams/"):
+            if fname.endswith("_feats_0-15.txt") and fname.startswith(dataset + '_' + gramType):
+                fsplit = fname.split('_')
+                score = int(fsplit[-3])
+                if score >= SCORERANGE[0] and score <= SCORERANGE[1]:
+                    fullfname = "mypersonality/NGrams/" + fname
+                    fnames.append(fullfname)
 
         feats = loadFeatures(fnames)
-        vocab = loadVocab('NGrams/mypersonality_' + gramType + '_vocab_10-15.txt')
+        vocab = loadVocab('mypersonality/NGrams/mypersonality_depressed_' + gramType + '_vocab_0-15.txt')
+        topic_word = findTopics(10, 900, feats)
+        writeTopics('mypersonality/mypersonality_depressed_' + gramType + '_topics_0-15.txt', topic_word, vocab, 8)
 
-        model = lda.LDA(n_topics=5, n_iter=100, random_state=1)
-        X = np.array(feats)
-        model.fit(X)
-        topic_word = model.topic_word_  # model.components_ also works
-        n_top_words = 8
-        for i, topic_dist in enumerate(topic_word):
-            topic_words = np.array(vocab)[np.argsort(topic_dist)][:-n_top_words:-1]
-            print('Topic {}: {}'.format(i, ' '.join(topic_words)))
+        
+        if not os.path.exists('mypersonality/NGrams/' + dataset + '_' + gramType + '_vocab_0-24.txt'):
+            print 'Run python preprocess_lda.py before doing this...'
+            sys.exit()
 
+        print 'Topic Modeling for MyPersonality CESD<=24...'
 
-        print 'Topic Modeling for MyPersonality CESD>43...'
-
+        SCORERANGE = [0,24]
         fnames = []
-        for s in range(44, 49):
-            fname = 'NGrams/mypersonality_' + gramType + '_' + str(s) + '_feats.txt'
-            if os.path.exists(fname):
-                fnames.append(fname)
+        for fname in os.listdir("mypersonality/NGrams/"):
+            if fname.endswith("_feats_0-24.txt") and fname.startswith(dataset + '_' + gramType):
+                fsplit = fname.split('_')
+                score = int(fsplit[-3])
+                if score >= SCORERANGE[0] and score <= SCORERANGE[1]:
+                    fullfname = "mypersonality/NGrams/" + fname
+                    fnames.append(fullfname)
 
         feats = loadFeatures(fnames)
-        vocab = loadVocab('NGrams/mypersonality_' + gramType + '_vocab_44-48.txt')
+        vocab = loadVocab('mypersonality/NGrams/mypersonality_depressed_' + gramType + '_vocab_0-24.txt')
+        topic_word = findTopics(10, 900, feats)
+        writeTopics('mypersonality/mypersonality_depressed_' + gramType + '_topics_0-24.txt', topic_word, vocab, 8)
 
-        model = lda.LDA(n_topics=5, n_iter=100, random_state=1)
-        X = np.array(feats)
-        model.fit(X)
-        topic_word = model.topic_word_  # model.components_ also works
-        n_top_words = 8
-        for i, topic_dist in enumerate(topic_word):
-            topic_words = np.array(vocab)[np.argsort(topic_dist)][:-n_top_words:-1]
-            print('Topic {}: {}'.format(i, ' '.join(topic_words)))
-        topic_word = findTopics(5, 200, feats)
-        writeTopics('mypersonality_topics_' + gramType + '.txt', topic_word, 8)
+        if not os.path.exists('mypersonality/NGrams/' + dataset + '_' + gramType + '_vocab_44-60.txt'):
+            print 'Run python preprocess_lda.py before doing this...'
+            sys.exit()
 
-    elif flag == 'reddit_depressed':
-        print 'Topic Modeling for Reddit Depressed Using ' + gramType + '...'
+        print 'Topic Modeling for MyPersonality CESD>=44...'
+
+        SCORERANGE = [44,60]
         fnames = []
-        f = open('reddit/filelist.txt', 'r')
-        for line in f:
-            line = line.strip()
-            fname = string.replace(line, 'depressed', 'NGrams')
-            fname = fname[:-4] + '_' + gramType + '_feats.txt'
-            fnames.append(fname)
+        for fname in os.listdir("mypersonality/NGrams/"):
+            if fname.endswith("_feats_-44-60.txt") and fname.startswith(dataset + '_' + gramType):
+                fsplit = fname.split('_')
+                score = int(fsplit[-3])
+                if score >= SCORERANGE[0] and score <= SCORERANGE[1]:
+                    fullfname = "mypersonality/NGrams/" + fname
+                    fnames.append(fullfname)
 
         feats = loadFeatures(fnames)
-        vocab = loadVocab('NGrams/reddit_depressed_' + gramType + '_vocab.txt')
-        topic_word = findTopics(5, 200, feats)
-        writeTopics('reddit_depressed_' + gramType + '.txt', topic_word, 8)
+        vocab = loadVocab('mypersonality/NGrams/mypersonality_depressed_' + gramType + '_vocab_44-60.txt')
+        topic_word = findTopics(10, 900, feats)
+        writeTopics('mypersonality/mypersonality_depressed_' + gramType + '_topics_44-60.txt', topic_word, vocab, 8)
 
-    else:
-        print "Wrong dataset flag"
-        sys.exit()
+        if not os.path.exists('mypersonality/NGrams/' + dataset + '_' + gramType + '_vocab_31-60.txt'):
+            print 'Run python preprocess_lda.py before doing this...'
+            sys.exit()
 
+        
+        print 'Topic Modeling for MyPersonality CESD>=31...'
+        
+        SCORERANGE = [31,60]
+        fnames = []
+        for fname in os.listdir("mypersonality/NGrams/"):
+            if fname.endswith("_feats_31-60.txt") and fname.startswith(dataset + '_' + gramType):
+                fsplit = fname.split('_')
+                score = int(fsplit[-3])
+                if score >= SCORERANGE[0] and score <= SCORERANGE[1]:
+                    fullfname = "mypersonality/NGrams/" + fname
+                    fnames.append(fullfname)
+
+        feats = loadFeatures(fnames)
+        vocab = loadVocab('mypersonality/NGrams/mypersonality_depressed_' + gramType + '_vocab_31-60.txt')
+        topic_word = findTopics(10, 900, feats)
+        writeTopics('mypersonality/mypersonality_depressed_' + gramType + '_topics_31-60.txt', topic_word, vocab, 8)
+
+    if dataset == 'mypersonality_neurotic':
+        print 'Topic Modeling for MyPersonality score<=2.25...'
+        
+        SCORERANGE = [0,2.25]
+        fnames = []
+        for fname in os.listdir("mypersonality/NGrams/"):
+            if fname.endswith("_feats_0.0-2.25.txt") and fname.startswith(dataset + '_' + gramType):
+                fsplit = fname.split('_')
+                score = int(fsplit[-3])
+                if score >= SCORERANGE[0] and score <= SCORERANGE[1]:
+                    fullfname = "mypersonality/NGrams/" + fname
+                    fnames.append(fullfname)
+
+        feats = loadFeatures(fnames)
+        vocab = loadVocab('mypersonality/NGrams/mypersonality_depressed_' + gramType + '_vocab_0.0-2.25.txt')
+        topic_word = findTopics(10, 900, feats)
+        writeTopics('mypersonality/mypersonality_depressed_' + gramType + '_topics_0.0-2.25.txt', topic_word, vocab, 8)
+        
+        print 'Topic Modeling for MyPersonality score>=3.05...'
+        
+        SCORERANGE = [3.05,5.0]
+        fnames = []
+        for fname in os.listdir("mypersonality/NGrams/"):
+            if fname.endswith("_feats_0.0-3.05.txt") and fname.startswith(dataset + '_' + gramType):
+                fsplit = fname.split('_')
+                score = int(fsplit[-3])
+                if score >= SCORERANGE[0] and score <= SCORERANGE[1]:
+                    fullfname = "mypersonality/NGrams/" + fname
+                    fnames.append(fullfname)
+
+        feats = loadFeatures(fnames)
+        vocab = loadVocab('mypersonality/NGrams/mypersonality_depressed_' + gramType + '_vocab_3.05-5.0.txt')
+        topic_word = findTopics(10, 900, feats)
+        writeTopics('mypersonality/mypersonality_depressed_' + gramType + '_topics_3.05-5.0.txt', topic_word, vocab, 8)
+
+    if dataset == 'reddit_depressed':
+        print 'Topic Modeling for reddit_depressed...'
+        
+        fnames = []
+        for fname in os.listdir("reddit/NGrams/"):
+            if fname.endswith(gramType + "_feats.txt") and fname.startswith(dataset):
+                fullfname = "reddit/NGrams/" + fname
+                fnames.append(fullfname)
+
+        feats = loadFeatures(fnames)
+        vocab = loadVocab('reddit/NGrams/reddit_depressed_' + gramType + '_vocab_all.txt')
+        topic_word = findTopics(10, 900, feats)
+        writeTopics('reddit/reddit_depressed_' + gramType + '_topics.txt', topic_word, vocab, 8)
+
+    if dataset == 'reddit_nondepressed':
+        print 'Topic Modeling for reddit_nondepressed...'
+        
+        fnames = []
+        for fname in os.listdir("reddit/NGrams/"):
+            if fname.endswith(gramType + "_feats_full.txt") and fname.startswith(dataset):
+                fullfname = "reddit/NGrams/" + fname
+                fnames.append(fullfname)
+
+        feats = loadFeatures(fnames)
+        vocab = loadVocab('reddit/NGrams/reddit_nondepressed_' + gramType + '_vocab_all.txt')
+        topic_word = findTopics(10, 900, feats)
+        writeTopics('reddit/reddit_nondepressed_' + gramType + '_topics.txt', topic_word, vocab, 8)
+
+
+    if dataset == 'reddit_nondepressed_changemyview':
+        print 'Topic Modeling for reddit_nondepressed_changemyview...'
+        
+        fnames = []
+        for fname in os.listdir("reddit/NGrams/"):
+            if fname.endswith(gramType + "_feats.txt") and fname.startswith(dataset):
+                fullfname = "reddit/NGrams/" + fname
+                fnames.append(fullfname)
+
+        feats = loadFeatures(fnames)
+        vocab = loadVocab('reddit/NGrams/' + dataset + '_' + gramType + '_vocab_all.txt')
+        topic_word = findTopics(10, 900, feats)
+        writeTopics('reddit/' + dataset + '_' + gramType + '_topics.txt', topic_word, vocab, 8)
+
+
+    if dataset == 'reddit_nondepressed_casualconversation':
+        print 'Topic Modeling for reddit_nondepressed_casualconversation...'
+        
+        fnames = []
+        for fname in os.listdir("reddit/NGrams/"):
+            if fname.endswith(gramType + "_feats.txt") and fname.startswith(dataset):
+                fullfname = "reddit/NGrams/" + fname
+                fnames.append(fullfname)
+
+        feats = loadFeatures(fnames)
+        vocab = loadVocab('reddit/NGrams/' + dataset + '_' + gramType + '_vocab_all.txt')
+        topic_word = findTopics(10, 900, feats)
+        writeTopics('reddit/' + dataset + '_' + gramType + '_topics.txt', topic_word, vocab, 8)
+
+
+    if dataset == 'reddit_nondepressed_confession':
+        print 'Topic Modeling for reddit_nondepressed_confession...'
+        
+        fnames = []
+        for fname in os.listdir("reddit/NGrams/"):
+            if fname.endswith(gramType + "_feats.txt") and fname.startswith(dataset):
+                fullfname = "reddit/NGrams/" + fname
+                fnames.append(fullfname)
+
+        feats = loadFeatures(fnames)
+        vocab = loadVocab('reddit/NGrams/' + dataset + '_' + gramType + '_vocab_all.txt')
+        topic_word = findTopics(10, 900, feats)
+        writeTopics('reddit/' + dataset + '_' + gramType + '_topics.txt', topic_word, vocab, 8)
+
+
+    if dataset == 'reddit_nondepressed_self':
+        print 'Topic Modeling for reddit_nondepressed_self...'
+        
+        fnames = []
+        for fname in os.listdir("reddit/NGrams/"):
+            if fname.endswith(gramType + "_feats.txt") and fname.startswith(dataset):
+                fullfname = "reddit/NGrams/" + fname
+                fnames.append(fullfname)
+
+        feats = loadFeatures(fnames)
+        vocab = loadVocab('reddit/NGrams/' + dataset + '_' + gramType + '_vocab_all.txt')
+        topic_word = findTopics(10, 900, feats)
+        writeTopics('reddit/' + dataset + '_' + gramType + '_topics.txt', topic_word, vocab, 8)
 
 
 

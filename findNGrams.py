@@ -25,6 +25,8 @@ def loadData(filename):
     for line in f:
         line = line.strip()
         line = re.sub(r'[^\x00-\x7F]+',' ', line)
+        line = line.replace("'",'')
+        line = line.lower()
         text = nltk.word_tokenize(line)
         data.append(text)
     f.close()
@@ -149,7 +151,7 @@ def separateMyPersonalityData(folder, scoreFile):
         cnt = 0
         for row in f:
             if cnt > 0:
-                score = row[2]
+                score = row[-1]
                 origFilename = folder + 'text/' + row[0] + '.txt'
                 origFNames.append(origFilename)
                 scores.append(score)
@@ -158,8 +160,8 @@ def separateMyPersonalityData(folder, scoreFile):
             cnt += 1
     return origFNames, scores
 
-def combineMyPersonalityData(scoreRange):
-    fBase = 'mypersonality/NGrams/mypersonality_depressed_'
+def combineMyPersonalityData(scoreRange, dataset):
+    fBase = 'mypersonality/NGrams/' + dataset + '_'
 
     for gramType in ['unigrams', 'bigrams', 'trigrams']:
         print 'Computing', gramType, 'for score range', scoreRange
@@ -167,17 +169,56 @@ def combineMyPersonalityData(scoreRange):
         ngrams = []
         cnts = []
 
-        f = open(fBase + gramType + '_' + str(scoreRange[0]) + '.txt', 'r')
-        for line in f:
-            line = line.strip()
-            line = line.split()
-            ngrams.append(line[0])
-            cnts.append(int(line[1]))
-        f.close()
+        for fname in os.listdir("mypersonality/NGrams/"):
+            if fname.endswith(".txt") and fname.startswith(dataset + '_' + gramType):
+                fsplit = fname.split('_')
+                score = fsplit[-1][:-4]
+                if '-' not in score:
+                    if dataset == 'mypersonality_depressed':
+                        score = int(score)
+                        scoreRange[0] = int(scoreRange[0])
+                        scoreRange[1] = int(scoreRange[1])
+                    elif dataset == 'mypersonality_neurotic':
+                        score = float(score)
+                        scoreRange[0] = float(scoreRange[0])
+                        scoreRange[1] = float(scoreRange[1])
 
-        for score in range(scoreRange[0] + 1, scoreRange[1] + 1):
-            if os.path.isfile(fBase + gramType + '_' + str(score) + '.txt'):
-                f = open(fBase + gramType + '_' + str(score) + '.txt', 'r')
+                    if score >= scoreRange[0] and score <= scoreRange[1]:
+                        print 'Saving NGrams for', fname, '...'
+                        f = open('mypersonality/NGrams/' + fname, 'r')
+                        for line in f:
+                            line = line.strip()
+                            line = line.split()
+                            if line[0] in ngrams:
+                                ind = ngrams.index(line[0])
+                                cnts[ind] += int(line[1])
+                            else:
+                                ngrams.append(line[0])
+                                cnts.append(int(line[1]))
+                        f.close()
+
+                        outname = fBase + gramType + '_' + str(scoreRange[0]) + '-' + str(scoreRange[1]) + '.txt'
+                        fout = open(outname, 'w')
+                        sortedCnts, sortedGrams = (list(t) for t in zip(*sorted(zip(cnts, ngrams))))
+                        sortedCnts.reverse() 
+                        sortedGrams.reverse()
+                        for a,b in zip(sortedGrams, sortedCnts):
+                            fout.write(a + ' ' + str(b) + '\n')
+                        fout.close()
+
+
+def combineRedditData(dataset):
+    gramTypes = ['unigrams', 'bigrams', 'trigrams']
+
+    for gramType in gramTypes:
+        print dataset, gramType
+        ngrams = []
+        cnts = []
+        fout = open('reddit/NGrams/' + dataset + '_' + gramType + '_all.txt', 'w')
+        for fname in os.listdir("reddit/NGrams/"):
+            if fname.endswith(gramType + ".txt") and fname.startswith(dataset):
+                #print 'Saving NGrams for', fname, '...'
+                f = open('reddit/NGrams/' + fname, 'r')
                 for line in f:
                     line = line.strip()
                     line = line.split()
@@ -188,16 +229,13 @@ def combineMyPersonalityData(scoreRange):
                         ngrams.append(line[0])
                         cnts.append(int(line[1]))
                 f.close()
-
-        fname = fBase + gramType + '_' + str(scoreRange[0]) + '-' + str(scoreRange[1]) + '.txt'
-        #print fname
-        fout = open(fname, 'w')
-        sortedCnts, sortedGrams = (list(t) for t in zip(*sorted(zip(cnts, ngrams))))
-        sortedCnts.reverse() 
-        sortedGrams.reverse()
-        for a,b in zip(sortedGrams, sortedCnts):
-            fout.write(a + ' ' + str(b) + '\n')
+        sortedCnts, sortedNGrams = (list(t) for t in zip(*sorted(zip(cnts, ngrams))))
+        sortedCnts.reverse()
+        sortedNGrams.reverse()
+        for c, n in zip(sortedCnts, sortedNGrams):
+            fout.write(n + ' ' + str(c) + '\n')
         fout.close()
+       
 
 
 def loadNGramFile(filename):
@@ -246,34 +284,79 @@ def runNGrams(flag, gramType):
         onlyfiles, scores = separateMyPersonalityData('project_materials/mypersonality_depression/', '939_userScores.csv')
 
         print 'Computing MyPersonality Depression NGrams...'
-        for s in range(1, 61):
+        cnt = 0
+        for s in list(set(scores)):
+            cnt += 1
             dataFiles = []
-            print 'SCORE:', s
+            print 'SCORE:', s,  'Progress:', cnt, '/', len(list(set(scores)))
             indices = [i for i, x in enumerate(scores) if x == str(s)]
             for i in indices:
                 dataFiles.append(onlyfiles[i])
             if dataFiles != []:
                 saveMyPersonalityNGrams(val, dataFiles, 'mypersonality/NGrams/mypersonality_depressed_' + gramType + '_' + str(s) + '.txt')
-                #saveMyPersonalityNGrams(2, dataFiles, 'mypersonality/NGrams/mypersonality_bigrams_' + str(s) + '.txt')
-                #saveMyPersonalityNGrams(3, dataFiles, 'mypersonality/NGrams/mypersonality_trigrams_' + str(s) + '.txt')
+
+    elif flag == 'mypersonality_neurotic':
+        if not os.path.exists('mypersonality/NGrams'):
+            print 'Creating directory mypersonality/NGrams...'
+            os.makedirs('mypersonality/NGrams')
+
+        onlyfiles, scores = separateMyPersonalityData('project_materials/mypersonality_neuroticism/', 'userDictionary.csv')
+
+        print 'Computing MyPersonality Neuroticism NGrams...'
+        cnt = 0
+        for s in list(set(scores)):
+            cnt += 1
+            dataFiles = []
+            print 'SCORE:', s,  'Progress:', cnt, '/', len(list(set(scores)))
+            indices = [i for i, x in enumerate(scores) if x == str(s)]
+            for i in indices:
+                dataFiles.append(onlyfiles[i])
+            if dataFiles != []:
+                saveMyPersonalityNGrams(val, dataFiles, 'mypersonality/NGrams/mypersonality_neurotic_' + gramType + '_' + str(s) + '.txt')
 
 
     elif flag == 'reddit_depressed':
-        if not os.path.exists('reddit/NGrams'):
-            print 'Creating directory reddit/NGrams...'
-            os.makedirs('reddit/NGrams')
-
+        dirname = 'reddit/NGrams/'
+        if not os.path.exists(dirname):
+            print 'Creating directory ' + dirname + '...'
+            os.makedirs(dirname)
         print 'Computing Reddit NGrams...'
-        f = open('reddit/filelist.txt', 'r')
-        for line in f:
-            line = line.strip()
-            print 'Saving NGrams for', line, '...'
+        for f in os.listdir("reddit/depressed/"):
+            if f.endswith(".txt"):
+                print 'Saving NGrams for', f, '...'
+                saveRedditNGrams(val, 'reddit/depressed/' + f, dirname + 'reddit_depressed_' + f[:-4] + '_' + gramType + '.txt')
+
+    elif flag == 'reddit_nondepressed':
+        dirname = 'reddit/NGrams/'
+        if not os.path.exists(dirname):
+            print 'Creating directory ' + dirname + '...'
+            os.makedirs(dirname)
+
+        print 'Computing Reddit NGrams ChangeMyView...'
+        for f in os.listdir("reddit/nondepressed/changemyview/"):
+            if f.endswith(".txt"):
+                print 'Saving NGrams for', f, '...'
+                saveRedditNGrams(val, 'reddit/nondepressed/changemyview/' + f, dirname + 'reddit_nondepressed_changemyview_' + f[:-4] + '_' + gramType + '.txt')
 
 
-            saveRedditNGrams(val, line, 'reddit/NGrams/' + line[16:-4] + '_' + gramType + '.txt')
-            #saveRedditNGrams(2, line, 'reddit/NGrams/' + line[16:-4] + '_bigrams.txt')
-            #saveRedditNGrams(3, line, 'reddit/NGrams/' + line[16:-4] + '_trigrams.txt')
-        f.close()
+        print 'Computing Reddit NGrams CasualConversation...'
+        for f in os.listdir("reddit/nondepressed/casualconversation/"):
+            if f.endswith(".txt"):
+                print 'Saving NGrams for', f, '...'
+                saveRedditNGrams(val, 'reddit/nondepressed/casualconversation/' + f, dirname + 'reddit_nondepressed_casualconversation_' + f[:-4] + '_' + gramType + '.txt')
+
+
+        print 'Computing Reddit NGrams Confession...'
+        for f in os.listdir("reddit/nondepressed/confession/"):
+            if f.endswith(".txt"):
+                print 'Saving NGrams for', f, '...'
+                saveRedditNGrams(val, 'reddit/nondepressed/confession/' + f, dirname + 'reddit_nondepressed_confession_' + f[:-4] + '_' + gramType + '.txt')
+
+        print 'Computing Reddit NGrams Self...'
+        for f in os.listdir("reddit/nondepressed/self/"):
+            if f.endswith(".txt"):
+                print 'Saving NGrams for', f, '...'
+                saveRedditNGrams(val, 'reddit/nondepressed/self/' + f, dirname + 'reddit_nondepressed_self_' + f[:-4] + '_' + gramType + '.txt')
 
     else:
         print 'Unrecognized dataset option...'
@@ -283,36 +366,35 @@ def printUsage():
     print '*****USAGE*****'
     print 'python findNGrams.py <option> <args>'
     print 'option ngrams: args= <dataset> <gramType>'
-    print 'option combine: args= <min> <max>'
+    print 'option combine: args= <dataset> <min> <max>'
     print 'option compare: args= <dist1file> <dist2file> <threshval>'
 
 args = sys.argv
-if args[1] == 'ngrams':
-    if len(args) == 4:
-        runNGrams(args[2], args[3])
-    else:
-        printUsage()
-elif args[1] == 'combine':
-    if len(args) == 4:
-        combineMyPersonalityData([int(args[2]), int(args[3])])
-        print 'Done.'
-    else:
-        printUsage()
-elif args[1] == 'compare':
-    if len(args) == 5:
-        div = compareDistrs(args[2], args[3], float(args[4]))
-        print div
+if len(args) > 2:
+    if args[1] == 'ngrams':
+        if len(args) == 4:
+            runNGrams(args[2], args[3])
+        else:
+            printUsage()
+    elif args[1] == 'combine':
+        if len(args) == 5:
+            if 'mypersonality' in args[2]:
+                combineMyPersonalityData([args[3], args[4]], args[2])
+            print 'Done.'
+        elif len(args) == 3:
+            if 'reddit' in args[2]:
+                combineRedditData(args[2])
+            print 'Done.'
+        else:
+            printUsage()
+    elif args[1] == 'compare':
+        if len(args) == 5:
+            div = compareDistrs(args[2], args[3], float(args[4]))
+            print div
+        else:
+            printUsage()
     else:
         printUsage()
 else:
     printUsage()
-
-'''
-
-
-combineMyPersonalityData([10, 15])
-combineMyPersonalityData([44, 48])
-
-
-'''
 

@@ -2,6 +2,7 @@
 import sys
 import os
 import string
+import time
 
 def loadNGramFile(filename):
     ngrams = []
@@ -22,11 +23,12 @@ def writeVocab(vocab, fname):
         fout.write(v + '\n')
     fout.close()
 
-def computeVocab(fnames):
+def computeVocab(fnames, thresh):
     vocab = []
     for fname in fnames:
-       grams, cnts = loadNGramFile(fname)
-       vocab += grams
+        grams, cnts = loadNGramFile(fname)
+        newgrams = [i for (i,j) in zip(grams,cnts) if j > thresh]
+        vocab = list(set(vocab + newgrams))
     myset = set(vocab)
     vocab = list(myset)
     return vocab
@@ -34,9 +36,12 @@ def computeVocab(fnames):
 def computeFeature(fname, vocab):
     grams, cnts = loadNGramFile(fname)
     res = [0]*len(vocab)
+    cnt = 0
     for g in grams:
-        ind = vocab.index(g)
-        res[ind] = 1
+        if g in vocab:
+            ind = vocab.index(g)
+            res[ind] = cnts[cnt]
+        cnt += 1
     return res
 
 def writeFeature(feat, fname):
@@ -45,75 +50,227 @@ def writeFeature(feat, fname):
         fout.write(str(item) + '\n')
     fout.close()
 
-if not os.path.exists('NGrams'):
-    print 'Run python findNGrams.py before doing this...'
-    sys.exit()
 
-def runPreprocess(flag, gramType):
-    if flag == 'mypersonality_depressed':
-        print 'Computing vocab for CESD<16...'
-        fnames = []
-        for s in range(10, 16):
-            fname = 'NGrams/mypersonality_' + gramType + '_' + str(s) + '.txt'
-            if os.path.exists(fname):
-                fnames.append(fname)
+def runPreprocess(gramType):
+    
+    dataset = 'mypersonality_depressed'
+    print 'Preprocessing lda for', dataset, 'CESD<=15...'
+    SCORERANGE = [0,15]
+    vocabfnames = ['mypersonality/NGrams/' + dataset + '_' + gramType + '_0-15.txt']
+    vocab = computeVocab(vocabfnames, 1)
+    writeVocab(vocab, 'mypersonality/NGrams/' + dataset + '_' + gramType + '_vocab_0-15.txt')
+    
+    for fname in os.listdir("mypersonality/NGrams/"):
+        if fname.endswith(".txt") and fname.startswith(dataset + '_' + gramType):
+            fsplit = fname.split('_')
+            score = fsplit[-1][:-4]
+            if '-' not in score and 'feats' not in score:
+                score = int(score)
+                if score >= SCORERANGE[0] and score <= SCORERANGE[1]:
+                    fullfname = "mypersonality/NGrams/" + fname
+                    feats = computeFeature(fullfname, vocab)
+                    outname = fullfname[:-4] + '_feats_0-15.txt'
+                    print fullfname, outname
+                    writeFeature(feats, outname)
 
-        vocab = computeVocab(fnames)
-        writeVocab(vocab, 'NGrams/mypersonality_' + gramType + '_vocab_10-15.txt')
+    #time.sleep(1000)
+    print 'Preprocessing lda for', dataset, 'CESD>=44...'
+    SCORERANGE = [44,60]
+    vocabfnames = ['mypersonality/NGrams/' + dataset + '_' + gramType + '_44-60.txt']
+    vocab = computeVocab(vocabfnames, 1)
+    writeVocab(vocab, 'mypersonality/NGrams/' + dataset + '_' + gramType + '_vocab_44-60.txt')
+    
+    for fname in os.listdir("mypersonality/NGrams/"):
+        if fname.endswith(".txt") and fname.startswith(dataset + '_' + gramType):
+            fsplit = fname.split('_')
+            score = fsplit[-1][:-4]
+            if '-' not in score and 'feats' not in score:
+                score = int(score)
+                if score >= SCORERANGE[0] and score <= SCORERANGE[1]:
+                    fullfname = "mypersonality/NGrams/" + fname
+                    feats = computeFeature(fullfname, vocab)
+                    outname = fullfname[:-4] + '_feats_-44-60.txt'
+                    print fullfname, outname
+                    writeFeature(feats, outname)
 
-        print 'Writing features for CESD<16...'
-        for f in fnames:
-            feats = (computeFeature(f, vocab))
-            outname = f[:-4] + '_feats.txt'
+
+    print 'Preprocessing lda for', dataset, 'CESD<=24...'
+    SCORERANGE = [0,24]
+    vocabfnames = ['mypersonality/NGrams/' + dataset + '_' + gramType + '_0-24.txt']
+    vocab = computeVocab(vocabfnames, 10)
+    writeVocab(vocab, 'mypersonality/NGrams/' + dataset + '_' + gramType + '_vocab_0-24.txt')
+    
+    for fname in os.listdir("mypersonality/NGrams/"):
+        if fname.endswith(".txt") and fname.startswith(dataset + '_' + gramType):
+            fsplit = fname.split('_')
+            score = fsplit[-1][:-4]
+            if '-' not in score and 'feats' not in score:
+                score = int(score)
+                if score >= SCORERANGE[0] and score <= SCORERANGE[1]:
+                    fullfname = "mypersonality/NGrams/" + fname
+                    feats = computeFeature(fullfname, vocab)
+                    outname = fullfname[:-4] + '_feats_0-24.txt'
+                    print fullfname, outname
+                    writeFeature(feats, outname)
+
+    print 'Preprocessing lda for', dataset, 'CESD>=31...'
+    SCORERANGE = [31,60]
+    vocabfnames = ['mypersonality/NGrams/' + dataset + '_' + gramType + '_31-60.txt']
+    vocab = computeVocab(vocabfnames, 10)
+    writeVocab(vocab, 'mypersonality/NGrams/' + dataset + '_' + gramType + '_vocab_31-60.txt')
+    
+    for fname in os.listdir("mypersonality/NGrams/"):
+        if fname.endswith(".txt") and fname.startswith(dataset + '_' + gramType):
+            fsplit = fname.split('_')
+            score = fsplit[-1][:-4]
+            if '-' not in score and 'feats' not in score:
+                score = int(score)
+                if score >= SCORERANGE[0] and score <= SCORERANGE[1]:
+                    fullfname = "mypersonality/NGrams/" + fname
+                    feats = computeFeature(fullfname, vocab)
+                    outname = fullfname[:-4] + '_feats_31-60.txt'
+                    print fullfname, outname
+                    writeFeature(feats, outname)
+
+    dataset = 'mypersonality_neurotic'
+    print 'Preprocessing lda for', dataset, 'score<=2.25...'
+    SCORERANGE = [0.0, 2.25]
+    vocabfnames = ['mypersonality/NGrams/' + dataset + '_' + gramType + '_0.0-2.25.txt']
+    vocab = computeVocab(vocabfnames, 10)
+    writeVocab(vocab, 'mypersonality/NGrams/' + dataset + '_' + gramType + '_vocab_0.0-2.25.txt')
+    
+    for fname in os.listdir("mypersonality/NGrams/"):
+        if fname.endswith(".txt") and fname.startswith(dataset + '_' + gramType):
+            fsplit = fname.split('_')
+            score = fsplit[-1][:-4]
+            if '-' not in score and 'feats' not in score:
+                score = float(score)
+                if score >= SCORERANGE[0] and score <= SCORERANGE[1]:
+                    fullfname = "mypersonality/NGrams/" + fname
+                    feats = computeFeature(fullfname, vocab)
+                    outname = fullfname[:-4] + '_feats_0.0-2.25.txt'
+                    print fullfname, outname
+                    writeFeature(feats, outname)
+
+    print 'Preprocessing lda for', dataset, 'score>=3.05...'
+    SCORERANGE = [3.05,5.0]
+    vocabfnames = ['mypersonality/NGrams/' + dataset + '_' + gramType + '_3.05-5.0.txt']
+    vocab = computeVocab(vocabfnames, 10)
+    writeVocab(vocab, 'mypersonality/NGrams/' + dataset + '_' + gramType + '_vocab_3.05-5.0.txt')
+    
+    for fname in os.listdir("mypersonality/NGrams/"):
+        if fname.endswith(".txt") and fname.startswith(dataset + '_' + gramType):
+            fsplit = fname.split('_')
+            score = fsplit[-1][:-4]
+            if '-' not in score and 'feats' not in score:
+                score = float(score)
+                if score >= SCORERANGE[0] and score <= SCORERANGE[1]:
+                    fullfname = "mypersonality/NGrams/" + fname
+                    feats = computeFeature(fullfname, vocab)
+                    outname = fullfname[:-4] + '_feats_0.0-3.05.txt'
+                    print fullfname, outname
+                    writeFeature(feats, outname)
+
+    dataset = 'reddit_depressed'
+    print 'Preprocessing lda for', dataset, '...'
+    vocabfnames = ['reddit/NGrams/' + dataset + '_' + gramType + '_all.txt']
+    vocab = computeVocab(vocabfnames, 1)
+    writeVocab(vocab, 'reddit/NGrams/' + dataset + '_' + gramType + '_vocab_all.txt')
+    
+    for fname in os.listdir("reddit/NGrams/"):
+        if fname.endswith(gramType + ".txt") and fname.startswith(dataset):
+            fullfname = "reddit/NGrams/" + fname
+            feats = computeFeature(fullfname, vocab)
+            outname = fullfname[:-4] + '_feats.txt'
+            print fullfname, outname
             writeFeature(feats, outname)
-
-        print 'Computing vocab for CESD>43...'
-        fnames = []
-        for s in range(44, 49):
-            fname = 'NGrams/mypersonality_' + gramType + '_' + str(s) + '.txt'
-            if os.path.exists(fname):
-                fnames.append(fname)
-
-        vocab = computeVocab(fnames)
-        writeVocab(vocab, 'NGrams/mypersonality_' + gramType + '_vocab_44-48.txt')
-
-        print 'Writing features for CESD>43...'
-        for f in fnames:
-            feats = (computeFeature(f, vocab))
-            outname = f[:-4] + '_feats.txt'
+            fsplit = fname.split('_')
+    
+    dataset = 'reddit_nondepressed'
+    print 'Preprocessing lda for', dataset, '...'
+    vocabfnames = ['reddit/NGrams/' + dataset + '_' + gramType + '_all.txt']
+    vocab = computeVocab(vocabfnames, 1)
+    writeVocab(vocab, 'reddit/NGrams/' + dataset + '_' + gramType + '_vocab_all.txt')
+    
+    for fname in os.listdir("reddit/NGrams/"):
+        if fname.endswith(gramType + ".txt") and fname.startswith(dataset):
+            fullfname = "reddit/NGrams/" + fname
+            print fullfname
+            feats = computeFeature(fullfname, vocab)
+            outname = fullfname[:-4] + '_feats_full.txt'
+            print fullfname, outname
             writeFeature(feats, outname)
+            fsplit = fname.split('_')
 
-    elif flag == 'reddit_depressed':
-        print 'Computing vocab for reddit depressed...'
-
-        fnames = []
-        f = open('reddit/filelist.txt', 'r')
-        for line in f:
-            line = line.strip()
-            fname = string.replace(line, 'depressed', 'NGrams')
-            fname = fname[:-4] + '_' + gramType + '.txt'
-            if os.path.exists(fname):
-                fnames.append(fname)
-
-        vocab = computeVocab(fnames)
-        writeVocab(vocab, 'reddit/NGrams/reddit_depressed_' + gramType + '_vocab.txt')
-
-        print 'Writing features for reddit depressed...'
-        for f in fnames:
-            feats = (computeFeature(f, vocab))
-            outname = f[:-4] + '_feats.txt'
+    dataset = 'reddit_nondepressed_changemyview'
+    print 'Preprocessing lda for', dataset, '...'
+    #SCORERANGE = [3.05,5.0]
+    vocabfnames = ['reddit/NGrams/' + dataset + '_' + gramType + '_all.txt']
+    vocab = computeVocab(vocabfnames, 1)
+    writeVocab(vocab, 'reddit/NGrams/' + dataset + '_' + gramType + '_vocab_all.txt')
+    
+    for fname in os.listdir("reddit/NGrams/"):
+        if fname.endswith(gramType + ".txt") and fname.startswith(dataset):
+            fullfname = "reddit/NGrams/" + fname
+            feats = computeFeature(fullfname, vocab)
+            outname = fullfname[:-4] + '_feats.txt'
+            print fullfname, outname
             writeFeature(feats, outname)
+            fsplit = fname.split('_')
 
-    else:
-        print "Dataset not recognized..."
-        sys.exit()
+    dataset = 'reddit_nondepressed_casualconversation'
+    print 'Preprocessing lda for', dataset, '...'
+    #SCORERANGE = [3.05,5.0]
+    vocabfnames = ['reddit/NGrams/' + dataset + '_' + gramType + '_all.txt']
+    vocab = computeVocab(vocabfnames, 1)
+    writeVocab(vocab, 'reddit/NGrams/' + dataset + '_' + gramType + '_vocab_all.txt')
+    
+    for fname in os.listdir("reddit/NGrams/"):
+        if fname.endswith(gramType + ".txt") and fname.startswith(dataset):
+            fullfname = "reddit/NGrams/" + fname
+            feats = computeFeature(fullfname, vocab)
+            outname = fullfname[:-4] + '_feats.txt'
+            print fullfname, outname
+            writeFeature(feats, outname)
+            fsplit = fname.split('_')
+
+    dataset = 'reddit_nondepressed_confession'
+    print 'Preprocessing lda for', dataset, '...'
+    #SCORERANGE = [3.05,5.0]
+    vocabfnames = ['reddit/NGrams/' + dataset + '_' + gramType + '_all.txt']
+    vocab = computeVocab(vocabfnames, 1)
+    writeVocab(vocab, 'reddit/NGrams/' + dataset + '_' + gramType + '_vocab_all.txt')
+    
+    for fname in os.listdir("reddit/NGrams/"):
+        if fname.endswith(gramType + ".txt") and fname.startswith(dataset):
+            fullfname = "reddit/NGrams/" + fname
+            feats = computeFeature(fullfname, vocab)
+            outname = fullfname[:-4] + '_feats.txt'
+            print fullfname, outname
+            writeFeature(feats, outname)
+            fsplit = fname.split('_')
+
+    dataset = 'reddit_nondepressed_self'
+    print 'Preprocessing lda for', dataset, '...'
+    #SCORERANGE = [3.05,5.0]
+    vocabfnames = ['reddit/NGrams/' + dataset + '_' + gramType + '_all.txt']
+    vocab = computeVocab(vocabfnames, 1)
+    writeVocab(vocab, 'reddit/NGrams/' + dataset + '_' + gramType + '_vocab_all.txt')
+    
+    for fname in os.listdir("reddit/NGrams/"):
+        if fname.endswith(gramType + ".txt") and fname.startswith(dataset):
+            fullfname = "reddit/NGrams/" + fname
+            feats = computeFeature(fullfname, vocab)
+            outname = fullfname[:-4] + '_feats.txt'
+            print fullfname, outname
+            writeFeature(feats, outname)
+            fsplit = fname.split('_')
+
 
 args = sys.argv
-if len(args) == 3:
-    runPreprocess(args[1], args[2])
+if len(args) == 2:
+    runPreprocess(args[1])
 else:
     print '*****USAGE*****'
-    print 'python preprocess_lda.py <dataset> <gramType>'
-    print 'dataset: mypersonality_depressed, reddit_depressed'
-    print 'gramType: unigrams, bigrams, trigrams'
+    print 'python preprocess_lda.py <gramType>'
 
