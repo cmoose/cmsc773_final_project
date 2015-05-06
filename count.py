@@ -1,8 +1,10 @@
 #!/usr/bin/python
+from __future__ import division
 import os
 import pickle
 import split_mypersonality_depressed
 from util import *
+import math
 
 def load_pickle(dirprefix):
   all_pkl = []
@@ -48,7 +50,8 @@ def normalize_counts(group):
   for key in group.keys():
     group[key].normalize()
   return group
-def get_counts(cachedir):
+
+def load_counts(cachedir):
   counts = {}
   if not os.path.isdir('cache/' + cachedir):
     print "Error...cache/%s not a directory" % (cachedir)
@@ -66,13 +69,98 @@ def get_counts(cachedir):
     grouped = group_counts(pklobjs)
     total = aggregate_counts(grouped)
     return total
-def main():
-  print total_n['neg_adjs']
-  print total_n.keys()
-  #total_normalized_n = normalize_counts(total_n)
-  #total_normalized_p = normalize_counts(total_p)
-  #TODO: need to save to pickle, should be one object per directory (except mypersonality/depression)
-  
-  #Total count reddit/depressed
 
-#main()
+def smoothing(corpus1, corpus2):
+  for key in corpus1.keys():
+    vocab = set()
+    for word in corpus1[key].keys():
+      vocab.add(word)
+    for word in corpus2[key].keys():
+      vocab.add(word)
+    #for key in dict, for word in each type, add new word to the set
+    smooth = 1.0/len(vocab)
+    for word in vocab:
+      if not corpus1[key].has_key(word):
+        corpus1[key][word] = smooth
+      if not corpus2[key].has_key(word):
+        corpus2[key][word] = smooth
+  return (corpus1, corpus2)
+
+def calc_kl(corpus1,corpus2):
+  kl = 0.0
+  keys = corpus1.keys()
+  keys.remove('tense')
+  keys.sort()
+  for key in keys:
+    for x in corpus1[key].keys():
+      p_x = corpus1[key][x]
+      q_x = corpus2[key][x]
+      part = (p_x)*math.log(p_x/q_x)
+    #if p == 'r' and q == 'd':
+    #  heapq.heappush(top10,(part,x))
+    kl = kl + part
+    print "\t", key, kl
+
+def clean_counts(corpus):
+  #remove urls from counts
+  for key in corpus.keys():
+    for word in corpus[key].keys():
+      if word.count('https://') > 0 or word.count('http://') > 0:
+        corpus[key].pop(word)
+  return corpus
+
+def print_verb_tense_stuff(group):
+  total_verb_count = 0
+  past_tense_count = group['tense']['past']
+  future_tense_count = group['tense']['modal']
+  for verb,count in group['all_verbs'].items():
+    total_verb_count += count
+  print "\tTotal # of verbs in corpus: %d" % (total_verb_count)
+  print "\t{:.4%} past tense, {:.4%} future tense".format(past_tense_count/total_verb_count, future_tense_count/total_verb_count)
+  
+def compare_everything():
+  #Compare mypersonality/depression non_depressed versus depressed
+  corpusname = 'mypersonality/depression'
+  group = load_counts(corpusname)
+  nondepressed_group = group['notdepressed']
+  depressed_group = group['depressed']
+  nondepressed_group = clean_counts(nondepressed_group)
+  depressed_group = clean_counts(depressed_group)
+  print "COMPARING %s" % (corpusname.upper())
+  print_verb_tense_stuff(nondepressed_group)
+  print_verb_tense_stuff(depressed_group)
+  normalize_counts(nondepressed_group)
+  normalize_counts(depressed_group)
+  (nondepressed_group, depressed_group) = smoothing(nondepressed_group, depressed_group)
+  print "CALCULATE K-L DIVERGENCE"
+  calc_kl(nondepressed_group, depressed_group)
+  
+  reddit = []
+  reddit.append(('reddit/depressed', 'reddit/casualconversation'))
+  reddit.append(('reddit/depressed', 'reddit/confession'))
+  reddit.append(('reddit/depressed', 'reddit/changemyview'))
+  reddit.append(('reddit/depressed', 'reddit/self'))
+  for t in reddit:
+    group_0 = load_counts(t[0])
+    group_1 = load_counts(t[1])
+    group_0 = clean_counts(group_0)
+    group_1 = clean_counts(group_1)
+    print "\nCOMPARING %s WITH %s" % (t[0].upper(), t[1].upper())
+    print_verb_tense_stuff(group_0)
+    print_verb_tense_stuff(group_1)
+    normalize_counts(group_0)
+    normalize_counts(group_1)
+    (group_0, group_1) = smoothing(group_0, group_1)
+    print "CALCULATE K-L DIVERGENCE"
+    calc_kl(group_0, group_1)
+  
+  #Comparisons are:
+  #neg_nouns, neg_adjs, neg_advs (or together)
+  #neg_verbs, all_verbs
+  #tense['past'], tense['modal']
+  #cog_nouns, cog_adjs, cog_advs (cog_verbs?)
+  #mypersonality/depression, non_depressed, depressed
+  #reddit/depressed with reddit/{casualconversation, confession, changemyview}
+  #mypersonality/neuroticism, high, low
+
+compare_everything()
