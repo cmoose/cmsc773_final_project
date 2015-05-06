@@ -5,6 +5,8 @@ import pickle
 import split_mypersonality_depressed
 from util import *
 import math
+import emotion
+import re
 
 def load_pickle(dirprefix):
   all_pkl = []
@@ -17,6 +19,37 @@ def load_pickle(dirprefix):
 def save_pickle(data):
   #Save to cache/aggregates
   pass
+
+def count_cog_verbs(group):
+  emotion.load()
+  cog_count = 0
+  for regex in emotion.cognitive_words:
+    for verb, count in group['all_verbs'].items():
+      if re.search(regex, verb):
+        cog_count += 1
+  return cog_count
+
+def kasia_count():
+  #Compare mypersonality/depression non_depressed versus depressed
+  corpusname = 'mypersonality/depression'
+  group = load_counts(corpusname)
+  nondepressed_group = group['notdepressed']
+  depressed_group = group['depressed']
+  nondepressed_group = clean_counts(nondepressed_group)
+  depressed_group = clean_counts(depressed_group)
+  
+  depressed_cog_total = depressed_group['cog_nouns'] + depressed_group['cog_adjs'] + depressed_group['cog_advs']
+  depressed_neg_total = depressed_group['neg_nouns'] + depressed_group['neg_adjs'] + depressed_group['neg_advs'] + depressed_group['neg_verbs']
+  total_dep_neg_words = depressed_neg_total.totalCount()
+  total_dep_cog_words = depressed_cog_total.totalCount() + count_cog_verbs(depressed_group)
+  nondep_cog_total = nondepressed_group['cog_nouns'] + nondepressed_group['cog_adjs'] + nondepressed_group['cog_advs']
+  nondep_neg_total = nondepressed_group['neg_nouns'] + nondepressed_group['neg_adjs'] + nondepressed_group['neg_advs'] + nondepressed_group['neg_verbs']
+  total_nondep_neg_words = nondep_neg_total.totalCount()
+  total_nondep_cog_words = nondep_cog_total.totalCount() + count_cog_verbs(nondepressed_group)
+  print "Depressed total negative words: %d" % (total_dep_neg_words)
+  print "Depressed total cognitive words: %d" % (total_dep_cog_words)
+  print "Nondepressed total negative words: %d" % (total_nondep_neg_words)
+  print "Nondepressed total cognitive words: %d" % (total_nondep_cog_words)
 
 def group_myper_counts(pkl_list, non, dep):
   group_neg = []
@@ -163,4 +196,5 @@ def compare_everything():
   #reddit/depressed with reddit/{casualconversation, confession, changemyview}
   #mypersonality/neuroticism, high, low
 
-compare_everything()
+if __name__ == '__main__':
+  compare_everything()
