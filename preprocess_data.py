@@ -36,7 +36,7 @@ for later processing by Stanford's NLP toolkit.
 
 def prepare_reddit_control_data(name):
   setup_cache_dir('reddit/%s' % (name))
-  inputdir = 'reddit/reddit-control/'
+  inputdir = 'reddit-control/'
   outputdir = 'reddit/%s/' % (name)
   print "preparing reddit %s posts..." % (name)
   if not os.path.exists(outputdir):
@@ -46,14 +46,18 @@ def prepare_reddit_control_data(name):
   i = 1 
   for line in fh:
     if line.strip():
-      d = json.loads(line)
-      _id = d['id']
-      text = d['selftext']
-      fhw = codecs.open(outputdir + _id + '_%d.txt' % (i), 'wb', 'utf-8')
-      fhw.write(text)
-      fhw_filelist.write(outputdir + _id + '_%d.txt\n' % (i))
-      fhw.close()
-      i+=1
+      try:
+        d = json.loads(line)
+        _id = d['id']
+        text = d['selftext']
+        fhw = codecs.open(outputdir + _id + '_%d.txt' % (i), 'wb', 'utf-8')
+        fhw.write(text)
+        fhw_filelist.write(outputdir + _id + '_%d.txt\n' % (i))
+        fhw.close()
+        i+=1
+      except:
+        pass
+        #print "ERROR loading line for %s..." % (name)
 def setup_cache_dir(name):
   if not os.path.exists('cache/%s' % (name)):
     print "\tCreating cache/%s dir" % (name)
@@ -102,5 +106,5 @@ if __name__ == '__main__':
   prepare_reddit_depressed_data()
   prepare_reddit_control_data('casualconversation')
   prepare_reddit_control_data('confession')
-  prepare_reddit_control_data('depressed')
   prepare_reddit_control_data('changemyview')
+  prepare_reddit_control_data('self')

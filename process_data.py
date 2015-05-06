@@ -75,4 +75,5 @@ if __name__ == '__main__':
   do_reddit('casualconversation')
   do_reddit('changemyview')
   do_reddit('confession')
+  do_reddit('self')
   do_mypersonality()
