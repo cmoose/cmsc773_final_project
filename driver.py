@@ -48,6 +48,25 @@ def create_chunks(dirprefix):
     chunks.append(chunk)
   return chunks
 
+def count_cognitive_words(f):
+  cog_nouns = Counter()
+  cog_adjs = Counter()
+  cog_advs = Counter()
+  print "\tCounting cognitive words..."
+  for s in f.sentences:
+    for regex in emotion.cognitive_words:
+      #Count nouns
+      for _id, noun in s.nouns.items():
+        if re.search(regex, noun):
+          cog_nouns[noun+'_'+s.tokens[_id-1]['POS']] += 1
+      for _id, adj in s.adjs.items():
+        if re.search(regex, adj):
+          cog_adjs[adj+'_'+s.tokens[_id-1]['POS']] += 1
+      for _id, adv in s.advs.items():
+        if re.search(regex, adv):
+          cog_advs[adv+'_'+s.tokens[_id-1]['POS']] += 1
+  return {'cog_nouns': cog_nouns, 'cog_adjs': cog_adjs, 'cog_advs': cog_advs}
+
 def count_neg_words(f):
   neg_nouns = Counter()
   neg_adjs = Counter()
@@ -114,12 +133,15 @@ def process_chunk(chunk, dirprefix):
     
     neg_all_verbs_count = count_neg_and_all_verbs(f)
     neg_words_count = count_neg_words(f)
+    cog_words_count = count_cognitive_words(f)
     verb_tense_count = count_verb_tense(f)
     
     #Combine all dictionaries
     for k,v in neg_all_verbs_count.items():
       chunk_data[userid][k] = v
     for k,v in neg_words_count.items():
+      chunk_data[userid][k] = v
+    for k,v in cog_words_count.items():
       chunk_data[userid][k] = v
     chunk_data[userid]['tense'] = verb_tense_count
   fhw = open('cache/%s/%s.pkl' % (dirprefix, chunk_name), 'wb')
@@ -158,7 +180,7 @@ def parse_args(args):
     dirs = ['mypersonality/depression', 
             'mypersonality/neuroticism', 
             'reddit/depressed', 
-            'reddit/casualconveration', 
+            'reddit/casualconversation', 
             'reddit/confession', 
             'reddit/changemyview']
   elif arg_count == 2 and os.path.isdir(args[1]):

@@ -5,8 +5,10 @@ import os
 cat_id_map = {}
 categories = {}
 depression_categories = ['sad', 'anger', 'anx', 'inhib', 'death', 'negemo', 'swear']
+cognitive_categories = ['insight']
 depression_words = []
 depression_verbs = []
+cognitive_words = []
 
 def load_liwc(filename):
   """Loads the LIWC file and drops the words into an in-memory structure"""
@@ -33,19 +35,25 @@ def load_liwc(filename):
   for cat in depression_categories:
     s = s.union(categories[cat_id_map[cat]])
   depression_words = list(s)
+  q = set()
+  for cat in cognitive_categories:
+    q = q.union(categories[cat_id_map[cat]])
+  cognitive_words = list(q)
   print "Loaded emotion.categories and emotion.cat_id_map structures..."
-  return depression_words
+  return (depression_words, cognitive_words)
 def load():
   """Loads the liwc file plus the manually created depression verbs file"""
   global depression_verbs
   global depression_words
+  global cognitive_words
   #Check cache first
   if os.path.exists('cache/depression_verbs.pkl') and os.path.exists('cache/depression_words.pkl'):
     depression_verbs = pickle.load(open('cache/depression_verbs.pkl'))
     depression_words = pickle.load(open('cache/depression_words.pkl'))
+    cognitive_words = pickle.load(open('cache/cognitive_words.pkl'))
   else:
     #Load depression words
-    depression_words = load_liwc('project_materials/liwc/LIWC2007.dic')
+    (depression_words,cognitive_words) = load_liwc('project_materials/liwc/LIWC2007.dic')
     
     #Load depression verbs
     fh = open('depression_verbs.txt')
@@ -64,4 +72,8 @@ def load():
     #Cache depression verbs
     fhw = open('cache/depression_verbs.pkl', 'wb')
     pickle.dump(depression_verbs, fhw)
+    fhw.close()
+    
+    fhw = open('cache/cognitive_words.pkl', 'wb')
+    pickle.dump(cognitive_words, fhw)
     fhw.close()
