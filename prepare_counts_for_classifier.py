@@ -48,8 +48,6 @@ def save_pickle(corpusname, corpusdata):
   pickle.dump(corpusdata, fhw)
   fhw.close()
 
-def enhance(corpora):
-  
 def main():
   global corpora
   print "Creating vocabs..."
