@@ -12,13 +12,22 @@ import emotion
 import re
 import pickle
 
+emotion.load()
+depression_words = emotion.depression_words
+cognitive_words = emotion.cognitive_words
+depression_words_compiled = emotion.depression_words_compiled
+cognitive_words_compiled = emotion.cognitive_words_compiled
+
 def test():
   xmldir = 'mypersonality/depression/'
-  files = [f for f in os.listdir(xmldir) if f.endswith('xml')] 
+  #files = [f for f in os.listdir(xmldir) if f.endswith('xml')] 
+  xmldir = 'testing/'
+  files = ['77417f1e4dc8214d722ac60e593783da.txt.xml']
   for fn in files:
     print fn
     f = posts.File(xmldir + fn)
     f.load()
+  return f
 
 def filter_completed_chunks(files, dirprefix):
   pklfiles = [f for f in os.listdir('cache/%s' % (dirprefix)) if f.endswith('pkl') and not f.startswith('depression')]
@@ -52,52 +61,61 @@ def count_cognitive_words(f):
   cog_nouns = Counter()
   cog_adjs = Counter()
   cog_advs = Counter()
+  cog_words_count = 0
+  cog_verbs = Counter()
   print "\tCounting cognitive words..."
   for s in f.sentences:
-    for regex in emotion.cognitive_words:
-      #Count nouns
-      for _id, noun in s.nouns.items():
-        if re.search(regex, noun):
-          cog_nouns[noun+'_'+s.tokens[_id-1]['POS']] += 1
-      for _id, adj in s.adjs.items():
-        if re.search(regex, adj):
-          cog_adjs[adj+'_'+s.tokens[_id-1]['POS']] += 1
-      for _id, adv in s.advs.items():
-        if re.search(regex, adv):
-          cog_advs[adv+'_'+s.tokens[_id-1]['POS']] += 1
-  return {'cog_nouns': cog_nouns, 'cog_adjs': cog_adjs, 'cog_advs': cog_advs}
+    for token in s.tokens:
+      for regex in cognitive_words_compiled:
+        if regex.search(token['lemma']):
+          word = token['lemma']
+          cog_words_count += 1
+          if token['POS'].startswith('NN'):
+            cog_nouns[word] += 1
+          elif token['POS'].startswith('JJ'):
+            cog_adjs[word] += 1
+          elif token['POS'].startswith('RB') or token['POS'] == 'WRB':
+            cog_advs[word] += 1
+          elif token['POS'].startswith('VB') or token['POS'] == 'MD':
+            cog_verbs[word] += 1
+          #If we've matched once, we don't want it matching multiple times
+          break
+  return {'cog_nouns': cog_nouns, 'cog_adjs': cog_adjs, 'cog_advs': cog_advs, 'cog_verbs': cog_verbs, 'cog_words_count': cog_words_count}
 
 def count_neg_words(f):
   neg_nouns = Counter()
   neg_adjs = Counter()
   neg_advs = Counter()
+  neg_verbs = Counter()
+  neg_words_count = 0
   print "\tCounting negative words..."
   for s in f.sentences:
-    for regex in emotion.depression_words:
-      #Count nouns
-      for _id, noun in s.nouns.items():
-        if re.search(regex, noun):
-          neg_nouns[noun+'_'+s.tokens[_id-1]['POS']] += 1
-      for _id, adj in s.adjs.items():
-        if re.search(regex, adj):
-          neg_adjs[adj+'_'+s.tokens[_id-1]['POS']] += 1
-      for _id, adv in s.advs.items():
-        if re.search(regex, adv):
-          neg_advs[adv+'_'+s.tokens[_id-1]['POS']] += 1
-  return {'neg_nouns': neg_nouns, 'neg_adjs': neg_adjs, 'neg_advs': neg_advs}
+    for token in s.tokens:
+      for regex in depression_words_compiled:
+        if regex.search(token['lemma']):
+          word = token['lemma']
+          neg_words_count += 1
+          if token['POS'].startswith('NN'):
+            neg_nouns[word] += 1
+          elif token['POS'].startswith('JJ'):
+            neg_adjs[word] += 1
+          elif token['POS'].startswith('RB') or token['POS'] == 'WRB':
+            neg_advs[word] +=1
+          elif token['POS'].startswith('VB') or token['POS'] == 'MD':
+            neg_verbs[word] += 1
+          #If we've matched once, we don't want it matching multiple times
+          break
+  
+  return {'neg_verbs': neg_verbs, 'neg_nouns': neg_nouns, 'neg_adjs': neg_adjs, 'neg_advs': neg_advs, 'neg_words_count': neg_words_count}
 
-def count_neg_and_all_verbs(f):
+def count_all_verbs(f):
   """Counts verbs within an entire file, returns a Counter() object (see util.py)"""
-  neg_verbs = Counter()
   all_verbs = Counter()
-  print "\tCounting neg and all verbs..."
+  print "\tCounting all verbs..."
   for s in f.sentences:
     for _id, verb in s.verbs.items():
       all_verbs[verb] += 1
-      for regex in emotion.depression_verbs:
-        if re.search(regex, verb):
-          neg_verbs[verb] += 1
-  return {'neg_verbs': neg_verbs, 'all_verbs': all_verbs}
+  return {'all_verbs': all_verbs}
 
 def count_verb_tense(f):
   tense = Counter()
@@ -112,9 +130,18 @@ def count_verb_tense(f):
         tense['modal'] += counter
   return tense
 
+def count_ner(f):
+  print "\tCounting named entities..."
+  file_ner = {}
+  for s in f.sentences:
+    for ner_type,counts in s.ner.items():
+      if not file_ner.has_key(ner_type):
+        file_ner[ner_type] = Counter()
+      file_ner[ner_type] += counts
+  return file_ner
+
 def process(dirprefix):
   chunks = create_chunks(dirprefix)
-  emotion.load()
   for chunk in chunks:
     process_chunk(chunk, dirprefix)
 
@@ -131,19 +158,21 @@ def process_chunk(chunk, dirprefix):
     print "Processing new file %s..." % (f.filename)
     f.load()
     
-    neg_all_verbs_count = count_neg_and_all_verbs(f)
+    all_verbs_count = count_all_verbs(f)
     neg_words_count = count_neg_words(f)
     cog_words_count = count_cognitive_words(f)
     verb_tense_count = count_verb_tense(f)
+    ner_count = count_ner(f)
     
     #Combine all dictionaries
-    for k,v in neg_all_verbs_count.items():
+    for k,v in all_verbs_count.items():
       chunk_data[userid][k] = v
     for k,v in neg_words_count.items():
       chunk_data[userid][k] = v
     for k,v in cog_words_count.items():
       chunk_data[userid][k] = v
     chunk_data[userid]['tense'] = verb_tense_count
+    chunk_data[userid]['ner'] = ner_count
   fhw = open('cache/%s/%s.pkl' % (dirprefix, chunk_name), 'wb')
   print "Writing chunk's items to disk..."
   print chunk_data
@@ -182,6 +211,7 @@ def parse_args(args):
             'reddit/depressed', 
             'reddit/casualconversation', 
             'reddit/confession', 
+            'reddit/self',
             'reddit/changemyview']
   elif arg_count == 2 and os.path.isdir(args[1]):
     #Process a single corpus
@@ -196,14 +226,12 @@ if __name__ == '__main__':
   options = parse_args(sys.argv)
   if options['found_chunk']: #args used in subprocess, we're calling ourselves at this point
     #Process a single chunk in subprocess/parallel mode
-    emotion.load()
     corpusdir = options['corpora'][0]
     process_chunk(options['found_chunk'], corpusdir)
   else:
     if options['parallel_flag']:
       for corpusdir in options['corpora']:
         #parallelize each corpus
-        emotion.load()
         chunks = create_chunks(corpusdir) 
         while chunks:
           #Only create 8 separate processes

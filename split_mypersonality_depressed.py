@@ -29,9 +29,9 @@ def bin_data():
   non_depressed = []
   depressed = []
   for _id,score in scores.items():
-    if score <= low_score:
+    if int(score) <= 24:
       non_depressed.append(_id)
-    if score >= high_score:
+    if int(score) >= 31:
       depressed.append(_id)
   return (non_depressed, depressed)
   

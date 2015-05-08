@@ -50,6 +50,7 @@ def do_reddit(name):
     print "Run python preprocess_data.py first before this"
     exit(1)
 def do_mypersonality():
+  #for datatype in ['depression']:
   for datatype in ['depression', 'neuroticism']:
     print "PROCESSING MYPERSONALITY %s DATA..." % (datatype.upper())
     my_dep_filelist = 'mypersonality/%s_filelist.txt' % (datatype)

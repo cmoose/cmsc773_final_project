@@ -68,6 +68,7 @@ class Sentence():
     self.raw_deptree = deps_d
     self.verbs = {}
     self.verbs_count = Counter()
+    self.ner = {}
     self.adjs = {}
     self.nouns = {}
     self.advs = {}
@@ -78,7 +79,16 @@ class Sentence():
       token['word'] = tokens_d[i]['word']
       token['@id'] = tokens_d[i]['@id']
       token['lemma'] = tokens_d[i]['lemma']
-      #TODO: add NER
+      token['NER'] = tokens_d[i]['NER']
+      
+      #Count NER
+      if not self.ner.has_key(token['NER']):
+        self.ner[token['NER']] = Counter()
+      if token['NER'] == 'O':
+        self.ner[token['NER']]['total'] += 1
+      else:
+        self.ner[token['NER']][token['lemma']] += 1
+      
       self.tokens.append(token)
       if token['POS'].startswith('VB') or token['POS'] == 'MD':
         #Store @id as key, verb as value

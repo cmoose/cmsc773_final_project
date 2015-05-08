@@ -8,6 +8,8 @@ import math
 import emotion
 import re
 
+counter_keys = ['neg_nouns', 'all_verbs', 'cog_adjs', 'neg_advs', 'cog_advs', 'tense', 'neg_verbs', 'cog_nouns', 'neg_adjs', 'cog_verbs']
+
 def load_pickle(dirprefix):
   all_pkl = []
   pklfiles = [f for f in os.listdir('cache/%s' % (dirprefix)) if f.endswith('pkl') and not f.startswith('depression')]
@@ -71,16 +73,27 @@ def group_counts(pkl_list):
 
 def aggregate_counts(group):
   agg = {}
-  keys = group[0].keys()
-  for k in keys:
+  #Initialize
+  for k in counter_keys:
     agg[k] = Counter()
+  agg['cog_words_count'] = 0
+  agg['neg_words_count'] = 0
+  agg['ner'] = {}
+  
   for item in group:
-    for key in item.keys():
+    for key in counter_keys:
       agg[key] += item[key]
+    #do ner, cog_words_count, neg_words_count
+    for entity_type, counts in item['ner'].items():
+      if not agg['ner'].has_key(entity_type):
+        agg['ner'][entity_type] = Counter()
+      agg['ner'][entity_type] += counts
+    agg['cog_words_count'] += item['cog_words_count']
+    agg['neg_words_count'] += item['neg_words_count']
   return agg
     
 def normalize_counts(group):
-  for key in group.keys():
+  for key in counter_keys:
     group[key].normalize()
   return group
 
@@ -104,7 +117,7 @@ def load_counts(cachedir):
     return total
 
 def smoothing(corpus1, corpus2):
-  for key in corpus1.keys():
+  for key in counter_keys:
     vocab = set()
     for word in corpus1[key].keys():
       vocab.add(word)
@@ -114,29 +127,34 @@ def smoothing(corpus1, corpus2):
     smooth = 1.0/len(vocab)
     for word in vocab:
       if not corpus1[key].has_key(word):
-        corpus1[key][word] = smooth
+        corpus1[key][word] = 1
+      else:
+        corpus1[key][word] += 1
       if not corpus2[key].has_key(word):
-        corpus2[key][word] = smooth
+        corpus2[key][word] = 1
+      else:
+        corpus2[key][word] += 1
   return (corpus1, corpus2)
 
 def calc_kl(corpus1,corpus2):
-  kl = 0.0
   keys = corpus1.keys()
   keys.remove('tense')
+  keys.remove('neg_words_count')
+  keys.remove('ner')
+  keys.remove('cog_words_count')
   keys.sort()
   for key in keys:
+    kl = 0.0
     for x in corpus1[key].keys():
       p_x = corpus1[key][x]
       q_x = corpus2[key][x]
       part = (p_x)*math.log(p_x/q_x)
-    #if p == 'r' and q == 'd':
-    #  heapq.heappush(top10,(part,x))
-    kl = kl + part
+      kl = kl + part
     print "\t", key, kl
 
 def clean_counts(corpus):
   #remove urls from counts
-  for key in corpus.keys():
+  for key in counter_keys:
     for word in corpus[key].keys():
       if word.count('https://') > 0 or word.count('http://') > 0:
         corpus[key].pop(word)
@@ -162,9 +180,9 @@ def compare_everything():
   print "COMPARING %s" % (corpusname.upper())
   print_verb_tense_stuff(nondepressed_group)
   print_verb_tense_stuff(depressed_group)
+  (nondepressed_group, depressed_group) = smoothing(nondepressed_group, depressed_group)
   normalize_counts(nondepressed_group)
   normalize_counts(depressed_group)
-  (nondepressed_group, depressed_group) = smoothing(nondepressed_group, depressed_group)
   print "CALCULATE K-L DIVERGENCE"
   calc_kl(nondepressed_group, depressed_group)
   
@@ -181,20 +199,11 @@ def compare_everything():
     print "\nCOMPARING %s WITH %s" % (t[0].upper(), t[1].upper())
     print_verb_tense_stuff(group_0)
     print_verb_tense_stuff(group_1)
+    (group_0, group_1) = smoothing(group_0, group_1)
     normalize_counts(group_0)
     normalize_counts(group_1)
-    (group_0, group_1) = smoothing(group_0, group_1)
     print "CALCULATE K-L DIVERGENCE"
     calc_kl(group_0, group_1)
   
-  #Comparisons are:
-  #neg_nouns, neg_adjs, neg_advs (or together)
-  #neg_verbs, all_verbs
-  #tense['past'], tense['modal']
-  #cog_nouns, cog_adjs, cog_advs (cog_verbs?)
-  #mypersonality/depression, non_depressed, depressed
-  #reddit/depressed with reddit/{casualconversation, confession, changemyview}
-  #mypersonality/neuroticism, high, low
-
 if __name__ == '__main__':
   compare_everything()
