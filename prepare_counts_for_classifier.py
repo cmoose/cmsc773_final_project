@@ -58,6 +58,7 @@ def main():
     print "Enhancing %s..." % (corpusname)
     corpusdata = set_keys_for_corpus(corpusname, vocabs)
     #enhanced_corpora[corpusname] = corpusdata #Uncomment if you want everything in memory
+    print "\ttotal number of files: %d" % (len(corpusdata.keys()))
     
     #Take out this line if you just want to use the corpusdata
     print "Saving %s to disk..." % (corpusname)
