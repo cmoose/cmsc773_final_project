@@ -7,6 +7,7 @@ from os import listdir
 import os
 from os.path import isfile, join
 import csv
+import numpy
 
 
 #load stopwords.
@@ -99,7 +100,8 @@ def removeLowCounts(p, pCnts, thresh):
     return newP, newCnts
 
 def combineTwoDistrs(pBigrams, pCnts, qBigrams, qCnts):
-    bigrams = pBigrams + list(set(qBigrams) - set(pBigrams))
+    bigrams = list(set(pBigrams + qBigrams))
+    
     p = []
     q = []
     for item in bigrams:
@@ -118,7 +120,7 @@ def combineTwoDistrs(pBigrams, pCnts, qBigrams, qCnts):
     for i in range(0, len(bigrams)):
         p[i] /= float(pTot)
         q[i] /= float(qTot)
-    return p, q
+    return p, q, bigrams
 
 def saveNGrams(nGramList, nGramCnts, filename):
     fout = open(filename, 'w')
@@ -250,22 +252,114 @@ def loadNGramFile(filename):
     f.close()
     return ngrams, cnts
 
+def shuffle_in_unison_inplace(a, b, grams):
+    #assert len(a) == len(b)
+    shuffled_a = [0]*len(a)
+    shuffled_b = [0]*len(a)
+    shuffled_grams = ['']*len(a)
+    permutation = numpy.random.permutation(len(a))
+    for old_index, new_index in enumerate(permutation):
+        shuffled_a[new_index] = a[old_index]
+        shuffled_b[new_index] = b[old_index]
+        shuffled_grams[new_index] = grams[old_index]
+    return shuffled_a, shuffled_b, shuffled_grams
 
-def compareDistrs(gramFile1, gramFile2, removeVal):
+def compareDistrs(gramFile1, gramFile2, removeVal, outfile):
     ngrams1, cnts1 = loadNGramFile(gramFile1)
     ngrams2, cnts2 = loadNGramFile(gramFile2)
 
     pNew, pCnts = removeLowCounts(ngrams1, cnts1, removeVal)
     qNew, qCnts = removeLowCounts(ngrams2, cnts2, removeVal)
 
-    p, q = combineTwoDistrs(pNew, pCnts, qNew, qCnts)
+    p, q, ngrams = combineTwoDistrs(pNew, pCnts, qNew, qCnts)
+
+    p_rand, q_rand, ngrams_rand = shuffle_in_unison_inplace(p, q, ngrams)
+
+    fout = open(outfile, 'w')
+    fout.write("#Gram Distr1 Distr2 \n")
+    for g, i, j in zip(ngrams_rand, p_rand, q_rand):
+        fout.write(g + ' ' + str(i) + ' ' + str(j) + '\n')
+    fout.close()
 
     pqDiv = klDiv(p,q)
     qpDiv = klDiv(q,p)
     res = (pqDiv + qpDiv)/2.0
     return res
 
-def runNGrams(flag, gramType):
+#TODO maybe save vocab also
+def saveDistrs(dataset, gramType):
+    vocab = set()
+    if 'mypersonality' in dataset:
+        for fname in os.listdir("mypersonality/NGrams/All/"):
+            if fname.endswith(gramType + ".txt") and fname.startswith(dataset) and '-' not in fname:
+                f = open("mypersonality/NGrams/All/" + fname, 'r')
+                for line in f:
+                    line = line.strip()
+                    line = line.split()
+                    if int(line[1]) > 2:
+                        vocab.add(line[0])
+                f.close()
+                #print len(vocab)
+                #vocab = list(set(vocab))
+        if not os.path.exists("mypersonality/NGrams/Distrs"):
+            os.makedirs("mypersonality/NGrams/Distrs")
+        vocab = list(vocab)
+        for fname in os.listdir("mypersonality/NGrams/All/"):
+            if fname.endswith(gramType + ".txt") and fname.startswith(dataset) and '-' not in fname:
+                outfile = "mypersonality/NGrams/Distrs/" + fname[:-4]+'_distr.txt'
+                print outfile
+                dist = [1.0]*len(vocab) #laplace smoothing
+                f = open("mypersonality/NGrams/All/" + fname, 'r')
+                for line in f:
+                    line = line.strip()
+                    line = line.split()
+                    if line[0] in vocab:
+                        ind = vocab.index(line[0])
+                        dist[ind] += float(line[1])
+                f.close()
+                newDist = [d/sum(dist) for d in dist]
+                fout = open(outfile, 'w')
+                for d in newDist:
+                    fout.write(str(d) + '\n')
+                fout.close()
+                
+    elif 'reddit' in dataset:
+        for fname in os.listdir("reddit/NGrams/"):
+            if fname.endswith(gramType + ".txt") and fname.startswith(dataset) and '-' not in fname:
+                f = open("reddit/NGrams/" + fname, 'r')
+                for line in f:
+                    line = line.strip()
+                    line = line.split()
+                    if int(line[1]) > 2:
+                        vocab.add(line[0])
+                f.close()
+                #print len(vocab)
+                #vocab = list(set(vocab))
+                #print len(vocab)
+        if not os.path.exists("reddit/NGrams/Distrs"):
+            os.makedirs("reddit/NGrams/Distrs")
+        vocab = list(vocab)
+        for fname in os.listdir("reddit/NGrams/"):
+            if fname.endswith(gramType + ".txt") and fname.startswith(dataset) and '-' not in fname:
+                outfile = "reddit/NGrams/Distrs/" + fname[:-4]+'_distr.txt'
+                print outfile
+                dist = [1.0]*len(vocab) #laplace smoothing
+                f = open("reddit/NGrams/" + fname, 'r')
+                for line in f:
+                    line = line.strip()
+                    line = line.split()
+                    if line[0] in vocab:
+                        ind = vocab.index(line[0])
+                        dist[ind] += float(line[1])
+                f.close()
+                newDist = [d/sum(dist) for d in dist]
+                fout = open(outfile, 'w')
+                for d in newDist:
+                    fout.write(str(d) + '\n')
+                fout.close()
+
+
+def runNGrams(flag, gramType, separatebyscore):
     if gramType == 'unigrams':
         val = 1
     elif gramType == 'bigrams':
@@ -277,23 +371,40 @@ def runNGrams(flag, gramType):
         sys.exit()
 
     if flag == 'mypersonality_depressed':
-        if not os.path.exists('mypersonality/NGrams'):
-            print 'Creating directory mypersonality/NGrams...'
-            os.makedirs('mypersonality/NGrams')
+        if separatebyscore:
+            if not os.path.exists('mypersonality/NGrams/'):
+                print 'Creating directory mypersonality/NGrams...'
+                os.makedirs('mypersonality/NGrams/')
 
-        onlyfiles, scores = separateMyPersonalityData('project_materials/mypersonality_depression/', '939_userScores.csv')
+            onlyfiles, scores = separateMyPersonalityData('project_materials/mypersonality_depression/', '939_userScores.csv')
 
-        print 'Computing MyPersonality Depression NGrams...'
-        cnt = 0
-        for s in list(set(scores)):
-            cnt += 1
-            dataFiles = []
-            print 'SCORE:', s,  'Progress:', cnt, '/', len(list(set(scores)))
-            indices = [i for i, x in enumerate(scores) if x == str(s)]
-            for i in indices:
-                dataFiles.append(onlyfiles[i])
-            if dataFiles != []:
-                saveMyPersonalityNGrams(val, dataFiles, 'mypersonality/NGrams/mypersonality_depressed_' + gramType + '_' + str(s) + '.txt')
+            print 'Computing MyPersonality Depression NGrams...'
+            cnt = 0
+            for s in list(set(scores)):
+                cnt += 1
+                dataFiles = []
+                print 'SCORE:', s,  'Progress:', cnt, '/', len(list(set(scores)))
+                indices = [i for i, x in enumerate(scores) if x == str(s)]
+                for i in indices:
+                    dataFiles.append(onlyfiles[i])
+                if dataFiles != []:
+                    saveMyPersonalityNGrams(val, dataFiles, 'mypersonality/NGrams/mypersonality_depressed_' + gramType + '_' + str(s) + '.txt')
+        else:
+            if not os.path.exists('mypersonality/NGrams/All/'):
+                print 'Creating directory mypersonality/NGrams...'
+                os.makedirs('mypersonality/NGrams/All/')
+
+            onlyfiles, scores = separateMyPersonalityData('project_materials/mypersonality_depression/', '939_userScores.csv')
+            print 'Computing MyPersonality Depression NGrams...'
+            cnt = 0
+            for fname in onlyfiles:
+                fname = fname.strip()
+                ID = fname.split('/')
+                ID = ID[-1][:-4]
+                print ID
+                #time.sleep()
+                saveMyPersonalityNGrams(val, [fname], 'mypersonality/NGrams/All/mypersonality_depressed_' + ID + '_' + gramType + '.txt')
+
 
     elif flag == 'mypersonality_neurotic':
         if not os.path.exists('mypersonality/NGrams'):
@@ -367,13 +478,13 @@ def printUsage():
     print 'python findNGrams.py <option> <args>'
     print 'option ngrams: args= <dataset> <gramType>'
     print 'option combine: args= <dataset> <min> <max>'
-    print 'option compare: args= <dist1file> <dist2file> <threshval>'
+    print 'option compare: args= <dist1file> <dist2file> <threshval> <outfile>'
 
 args = sys.argv
 if len(args) > 2:
     if args[1] == 'ngrams':
         if len(args) == 4:
-            runNGrams(args[2], args[3])
+            runNGrams(args[2], args[3], False)
         else:
             printUsage()
     elif args[1] == 'combine':
@@ -388,11 +499,14 @@ if len(args) > 2:
         else:
             printUsage()
     elif args[1] == 'compare':
-        if len(args) == 5:
-            div = compareDistrs(args[2], args[3], float(args[4]))
+        if len(args) == 6:
+            div = compareDistrs(args[2], args[3], float(args[4]), args[5])
             print div
         else:
             printUsage()
+    elif args[1] == 'savedistr':
+        if len(args) == 4:
+           saveDistrs(args[2], args[3])
     else:
         printUsage()
 else:
