@@ -61,8 +61,8 @@ def main():
     print "\ttotal number of files: %d" % (len(corpusdata.keys()))
     
     #Take out this line if you just want to use the corpusdata
-    print "Saving %s to disk..." % (corpusname)
-    save_pickle(corpusname, corpusdata) 
+    #print "Saving %s to disk..." % (corpusname)
+    #save_pickle(corpusname, corpusdata) 
 
 if __name__ == '__main__':
   main()

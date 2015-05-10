@@ -40,18 +40,18 @@ def kasia_count():
   nondepressed_group = clean_counts(nondepressed_group)
   depressed_group = clean_counts(depressed_group)
   
-  depressed_cog_total = depressed_group['cog_nouns'] + depressed_group['cog_adjs'] + depressed_group['cog_advs']
-  depressed_neg_total = depressed_group['neg_nouns'] + depressed_group['neg_adjs'] + depressed_group['neg_advs'] + depressed_group['neg_verbs']
-  total_dep_neg_words = depressed_neg_total.totalCount()
-  total_dep_cog_words = depressed_cog_total.totalCount() + count_cog_verbs(depressed_group)
-  nondep_cog_total = nondepressed_group['cog_nouns'] + nondepressed_group['cog_adjs'] + nondepressed_group['cog_advs']
-  nondep_neg_total = nondepressed_group['neg_nouns'] + nondepressed_group['neg_adjs'] + nondepressed_group['neg_advs'] + nondepressed_group['neg_verbs']
-  total_nondep_neg_words = nondep_neg_total.totalCount()
-  total_nondep_cog_words = nondep_cog_total.totalCount() + count_cog_verbs(nondepressed_group)
-  print "Depressed total negative words: %d" % (total_dep_neg_words)
-  print "Depressed total cognitive words: %d" % (total_dep_cog_words)
-  print "Nondepressed total negative words: %d" % (total_nondep_neg_words)
-  print "Nondepressed total cognitive words: %d" % (total_nondep_cog_words)
+  total_dep_neg_words = depressed_group['neg_words_count']
+  total_dep_cog_words = depressed_group['cog_words_count']
+  total_nondep_neg_words = nondepressed_group['neg_words_count']
+  total_nondep_cog_words = nondepressed_group['cog_words_count']
+  total_dep_words = depressed_group['all_words_count']
+  total_nondep_words = nondepressed_group['all_words_count']
+  print "Depressed total words: %d" % (total_dep_words)
+  print "Depressed total negative words: {0}, percentage: {1:.4%}".format(total_dep_neg_words, total_dep_neg_words/total_dep_words)
+  print "Depressed total cognitive words: {0}, percentage: {1:.4%}".format(total_dep_cog_words, total_dep_cog_words/total_dep_words)
+  print "Nondepressed total words: %d" % (total_nondep_words)
+  print "Nondepressed total negative words: {0}, percentage: {1:.4%}".format(total_nondep_neg_words, total_nondep_neg_words/total_nondep_words)
+  print "Nondepressed total cognitive words: {0}, percentage: {1:.4%}".format(total_nondep_cog_words, total_nondep_cog_words/total_nondep_words)
 
 def group_myper_counts(pkl_list, non, dep):
   group_neg = []
@@ -78,18 +78,20 @@ def aggregate_counts(group):
     agg[k] = Counter()
   agg['cog_words_count'] = 0
   agg['neg_words_count'] = 0
+  agg['all_words_count'] = 0
   agg['ner'] = {}
   
   for item in group:
     for key in counter_keys:
       agg[key] += item[key]
-    #do ner, cog_words_count, neg_words_count
+    #do ner, cog_words_count, neg_words_count, all_words_count
     for entity_type, counts in item['ner'].items():
       if not agg['ner'].has_key(entity_type):
         agg['ner'][entity_type] = Counter()
       agg['ner'][entity_type] += counts
     agg['cog_words_count'] += item['cog_words_count']
     agg['neg_words_count'] += item['neg_words_count']
+    agg['all_words_count'] += item['all_words_count']
   return agg
     
 def normalize_counts(group):
@@ -142,6 +144,7 @@ def calc_kl(corpus1,corpus2):
   keys.remove('neg_words_count')
   keys.remove('ner')
   keys.remove('cog_words_count')
+  keys.remove('all_words_count')
   keys.sort()
   for key in keys:
     kl = 0.0

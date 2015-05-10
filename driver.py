@@ -117,6 +117,13 @@ def count_all_verbs(f):
       all_verbs[verb] += 1
   return {'all_verbs': all_verbs}
 
+def count_all_words(f):
+  all_words_count = 0
+  for s in f.sentences:
+    s_word_count = len(s.tokens)
+    all_words_count += s_word_count
+  return {'all_words_count': all_words_count}
+
 def count_verb_tense(f):
   tense = Counter()
   print "\tCounting verb tenses..."
@@ -159,6 +166,7 @@ def process_chunk(chunk, dirprefix):
     f.load()
     
     all_verbs_count = count_all_verbs(f)
+    all_words_count = count_all_words(f)
     neg_words_count = count_neg_words(f)
     cog_words_count = count_cognitive_words(f)
     verb_tense_count = count_verb_tense(f)
@@ -170,6 +178,8 @@ def process_chunk(chunk, dirprefix):
     for k,v in neg_words_count.items():
       chunk_data[userid][k] = v
     for k,v in cog_words_count.items():
+      chunk_data[userid][k] = v
+    for k,v in all_words_count.items():
       chunk_data[userid][k] = v
     chunk_data[userid]['tense'] = verb_tense_count
     chunk_data[userid]['ner'] = ner_count
