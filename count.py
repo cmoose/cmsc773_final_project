@@ -7,6 +7,8 @@ from util import *
 import math
 import emotion
 import re
+import heapq
+import colormap
 
 counter_keys = ['neg_nouns', 'all_verbs', 'cog_adjs', 'neg_advs', 'cog_advs', 'tense', 'neg_verbs', 'cog_nouns', 'neg_adjs', 'cog_verbs']
 
@@ -146,14 +148,24 @@ def calc_kl(corpus1,corpus2):
   keys.remove('cog_words_count')
   keys.remove('all_words_count')
   keys.sort()
+  heaps = {}
+  kl_counts = {}
   for key in keys:
     kl = 0.0
+    pq = []
     for x in corpus1[key].keys():
       p_x = corpus1[key][x]
       q_x = corpus2[key][x]
       part = (p_x)*math.log(p_x/q_x)
+      heapq.heappush(pq, (part, x))
+      heaps[key] = pq
       kl = kl + part
-    print "\t", key, kl
+    kl_counts[key] = kl
+    #if key.count('cog') > 0: 
+    #  print "\t", key, kl, ' --cog-- ', colormap.rgb_to_hex(colormap.get_color(kl/1.41864815901))
+    #else:
+    #  print "\t", key, kl, ' -- ', colormap.rgb_to_hex(colormap.get_color(kl/1.25107049293))
+  return (heaps,kl_counts)
 
 def clean_counts(corpus):
   #remove urls from counts
@@ -172,6 +184,28 @@ def print_verb_tense_stuff(group):
   print "\tTotal # of verbs in corpus: %d" % (total_verb_count)
   print "\t{:.4%} past tense, {:.4%} future tense".format(past_tense_count/total_verb_count, future_tense_count/total_verb_count)
   
+def print_kl_avg(kl_counts_1, kl_counts_2):
+  sym_counts = {}
+  for key in kl_counts_1.keys():
+    kl_1 = kl_counts_1[key]
+    kl_2 = kl_counts_2[key]
+    avg_kl = (kl_1 + kl_2)/2
+    sym_counts[key] = avg_kl
+  keys = sym_counts.keys()
+  keys.sort()
+  for key in keys:
+    kl = sym_counts[key]
+    #print "\t", key, kl
+    if key.count('cog') > 0: 
+      print "\t", key, kl, ' --cog-- ', colormap.rgb_to_hex(colormap.get_color(kl/1.23225533578))
+    else:
+      print "\t", key, kl, ' -- ', colormap.rgb_to_hex(colormap.get_color(kl/1.18640149793))
+def print_pq_top_scores(heaps):
+  for key, pq in heaps.items():
+    largest = heapq.nlargest(20, pq)
+    print "\t%s" % (key)
+    for score in largest:
+      print score[1] + ":" + str(score[0])
 def compare_everything():
   #Compare mypersonality/depression non_depressed versus depressed
   corpusname = 'mypersonality/depression'
@@ -187,7 +221,11 @@ def compare_everything():
   normalize_counts(nondepressed_group)
   normalize_counts(depressed_group)
   print "CALCULATE K-L DIVERGENCE"
-  calc_kl(nondepressed_group, depressed_group)
+  (heaps,kl_counts_1) = calc_kl(nondepressed_group, depressed_group)
+  #print_pq_top_scores(heaps)
+  (heaps,kl_counts_2) = calc_kl(depressed_group, nondepressed_group)
+  print_kl_avg(kl_counts_1, kl_counts_2)
+  #print_pq_top_scores(heaps)
   
   reddit = []
   reddit.append(('reddit/depressed', 'reddit/casualconversation'))
@@ -206,7 +244,11 @@ def compare_everything():
     normalize_counts(group_0)
     normalize_counts(group_1)
     print "CALCULATE K-L DIVERGENCE"
-    calc_kl(group_0, group_1)
+    (heaps,kl_counts_1) = calc_kl(group_0, group_1)
+    #print_pq_top_scores(heaps)
+    (heaps,kl_counts_2) = calc_kl(group_1, group_0)
+    print_kl_avg(kl_counts_1, kl_counts_2)
+    #print_pq_top_scores(heaps)
   
 if __name__ == '__main__':
   compare_everything()
