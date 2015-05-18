@@ -44,3 +44,12 @@ $ python driver.py --parallel reddit/depressed #Process the reddit/depressed cor
   - Sentence.verbs --> list of verbs
   - Sentence.tokens --> list of tokens
   - Sentence.adjs --> list of adjectives
+
+##Topic modeling
+python ldaTopicModeling.py will run the unsupervised topic modeling using Python's implementation of LDA. A usage will be printed and you can specify which datasets and groups to run topic modeling for.
+
+./do_topic_modeling.sh will run the Java Mallet topic modeling on all of the datasets. Make sure to install Java Mallet and point the mallet directory in the script to your installation of Mallet.
+
+
+## Classification
+You need to set the feature locations in the classifier.py file. Then you can use the classifierScript.sh to run the classification. It performs 5-fold cross-validation. You can comment out particular lines in order to only run one test. The type of classifier (svm or bayes) is specified in the bash script as well. All output is written to the console.
